@@ -4,7 +4,7 @@
   "version": "0.3.0",
   "description": "Mozi — a local toolbox for API testing, encoding, JSON, images and Markdown",
   "main": "src/main/main.js",
-  "author": "PostLite",
+  "author": "Mozi contributors",
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -81,5 +81,24 @@
       ]
     },
     "electronDist": "node_modules/electron/dist"
-  }
+  },
+  "homepage": "https://github.com/DavidLei08/mozi#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DavidLei08/mozi.git"
+  },
+  "bugs": {
+    "url": "https://github.com/DavidLei08/mozi/issues"
+  },
+  "keywords": [
+    "electron",
+    "api-client",
+    "postman",
+    "curl",
+    "json",
+    "base64",
+    "markdown",
+    "jwt",
+    "toolbox"
+  ]
 }
