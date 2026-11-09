@@ -308,6 +308,28 @@ async function runSmoke (win, app) {
     check('sse message counter', parseInt(sseResult.count, 10) >= 3, sseResult.count)
     check('sse data rendered', sseResult.text.includes('tick'), sseResult.text.slice(0, 60))
 
+    // the vertical divider must still drag in stream mode (it used to hide)
+    const streamDrag = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const h = (sel) => Math.round(document.querySelector(sel).getBoundingClientRect().height)
+      const vbar = document.querySelector('#splitter')
+      const visible = !vbar.classList.contains('hidden') && getComputedStyle(vbar).display !== 'none'
+      const before = h('.request-pane')
+      const r = vbar.getBoundingClientRect()
+      const opts = (x, y) => ({ bubbles: true, cancelable: true, pointerId: 1, clientX: x, clientY: y, button: 0 })
+      vbar.dispatchEvent(new PointerEvent('pointerdown', opts(r.left + 20, r.top + 2)))
+      window.dispatchEvent(new PointerEvent('pointermove', opts(r.left + 20, r.top - 150)))
+      window.dispatchEvent(new PointerEvent('pointerup', opts(r.left + 20, r.top - 150)))
+      await wait(150)
+      const after = h('.request-pane')
+      const streamH = h('.stream-pane')
+      const geom = { splitterTop: Math.round(r.top), paneTop: Math.round(document.querySelector('.request-pane').getBoundingClientRect().top), winH: window.innerHeight, wsH: Math.round(document.querySelector('.workspace').getBoundingClientRect().height) }
+      return JSON.stringify({ visible, before, after, streamH, geom })
+    })()`))
+    check('splitter visible in stream mode', streamDrag.visible)
+    check('splitter drags in stream mode', streamDrag.after < streamDrag.before - 100 && streamDrag.streamH > 200, JSON.stringify(streamDrag))
+    console.log('STREAM_GEOM', JSON.stringify(streamDrag.geom))
+
     // ============ SSE with POST body ============
     const ssePost = JSON.parse(await step(`(async () => {
       const wait = (ms) => new Promise(r => setTimeout(r, ms))
@@ -497,19 +519,21 @@ async function runSmoke (win, app) {
       document.querySelector('.req-tab[data-reqtab="body"]').click()
       document.querySelector('.seg-btn[data-bodytype="json"]').click()
       await wait(150)
+      const ws = document.querySelector('.workspace').getBoundingClientRect()
       const vbar = document.querySelector('#splitter')
       const opts = (x, y) => ({ bubbles: true, cancelable: true, pointerId: 1, clientX: x, clientY: y, button: 0 })
-      const r0 = vbar.getBoundingClientRect()
-      vbar.dispatchEvent(new PointerEvent('pointerdown', opts(r0.left + 20, r0.top + 2)))
-      window.dispatchEvent(new PointerEvent('pointermove', opts(r0.left + 20, r0.top + 140)))
-      window.dispatchEvent(new PointerEvent('pointerup', opts(r0.left + 20, r0.top + 140)))
+      const dragTo = (y) => {
+        const r = vbar.getBoundingClientRect()
+        vbar.dispatchEvent(new PointerEvent('pointerdown', opts(r.left + 20, r.top + 2)))
+        window.dispatchEvent(new PointerEvent('pointermove', opts(r.left + 20, y)))
+        window.dispatchEvent(new PointerEvent('pointerup', opts(r.left + 20, y)))
+      }
+      // absolute targets well inside the 20%..80% clamp
+      dragTo(ws.top + ws.height * 0.32)
       await wait(150)
       const paneSmall = h('.request-pane')
       const editorSmall = h('#body-json')
-      const r1 = vbar.getBoundingClientRect()
-      vbar.dispatchEvent(new PointerEvent('pointerdown', opts(r1.left + 20, r1.top + 2)))
-      window.dispatchEvent(new PointerEvent('pointermove', opts(r1.left + 20, r1.top + 420)))
-      window.dispatchEvent(new PointerEvent('pointerup', opts(r1.left + 20, r1.top + 420)))
+      dragTo(ws.top + ws.height * 0.6)
       await wait(150)
       const paneBig = h('.request-pane')
       const editorBig = h('#body-json')

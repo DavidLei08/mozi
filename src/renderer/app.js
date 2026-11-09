@@ -503,7 +503,8 @@
     const isStream = req.kind !== 'http'
     $('.response-pane').classList.toggle('hidden', isStream)
     $('.stream-pane').classList.toggle('hidden', !isStream)
-    $('#splitter').classList.toggle('hidden', isStream)
+    // the divider keeps working in stream mode: Split.handle measures against
+    // whichever of response/stream is currently visible
     if (isStream) renderStream()
     else renderResponse()
   }
