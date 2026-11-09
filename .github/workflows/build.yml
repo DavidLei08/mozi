@@ -3,10 +3,49 @@ name: build
 on:
   push:
     tags: ['v*']
+  pull_request:
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  # End-to-end UI suite. Informational only: a headless runner can be flaky,
+  # so this never blocks the release below.
+  smoke:
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v')
+    continue-on-error: true
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run smoke -- --no-sandbox --disable-gpu
+        env:
+          MOZI_SMOKE_OUT: ${{ runner.temp }}/mozi-smoke.png
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smoke-screenshots
+          path: ${{ runner.temp }}/mozi-smoke*.png
+
   build:
+    needs: test
     strategy:
       fail-fast: false
       matrix:
@@ -23,15 +62,47 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - run: npm test
       - run: npm run ${{ matrix.script }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v4
         with:
-          name: postlite-${{ matrix.os }}
+          name: mozi-${{ matrix.os }}
           path: |
             release/*.dmg
             release/*.zip
             release/*.exe
+            release/*.blockmap
+            release/latest*.yml
+
+  release:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: mozi-*
+          merge-multiple: true
+          path: dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: dist/*
+          body: |
+            本地优先的桌面工具箱，11 个工具，数据不出机器。
+
+            ## 工具
+            请求工具（HTTP / GraphQL / WebSocket / SSE）· 字符转义 · JSON 格式化 ·
+            Base64 工具箱（文本 + 图片双向）· Markdown 编辑器（图片回显 + Mermaid）·
+            JWT 解析 · Hash 摘要 · 时间戳 · UUID/密码 · 正则测试 · cURL 转代码
+
+            ## 安装
+            安装包未签名。macOS 首次打开若提示「已损坏」：
+
+            ```
+            xattr -dr com.apple.quarantine /Applications/Mozi.app
+            ```
+
+            Windows SmartScreen 同样需要选择「仍要运行」。
