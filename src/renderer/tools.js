@@ -390,6 +390,22 @@ flowchart LR
 [了解 Electron](https://www.electronjs.org)
 `
 
+  // Mermaid reads its theme at initialize() time, so every render pass must
+  // re-apply it — otherwise diagrams stay dark after a switch to light.
+  function configureMermaid () {
+    if (!window.mermaid || typeof window.mermaid.initialize !== 'function') return
+    const light = document.documentElement.dataset.theme === 'light'
+    try {
+      window.mermaid.initialize({
+        startOnLoad: false,
+        theme: light ? 'default' : 'dark',
+        securityLevel: 'strict',
+        fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif',
+        themeVariables: { fontSize: '14px' }
+      })
+    } catch { /* keep previous settings */ }
+  }
+
   let mermaidLoading = null
   let mermaidSeq = 0
   let mermaidIdSeq = 0
@@ -401,15 +417,7 @@ flowchart LR
         const script = document.createElement('script')
         script.src = 'lib/mermaid.min.js'
         script.onload = () => {
-          try {
-            window.mermaid.initialize({
-              startOnLoad: false,
-              theme: (document.documentElement.dataset.theme === 'light') ? 'default' : 'dark',
-              securityLevel: 'strict',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif',
-              themeVariables: { fontSize: '14px' }
-            })
-          } catch { /* keep defaults */ }
+          configureMermaid()
           resolve(window.mermaid)
         }
         script.onerror = () => reject(new Error('Mermaid 资源加载失败'))
@@ -434,6 +442,7 @@ flowchart LR
       }
       return
     }
+    configureMermaid()
     for (const code of blocks) {
       if (token !== undefined && token !== mermaidSeq) return
       const pre = code.parentElement

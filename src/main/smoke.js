@@ -792,6 +792,36 @@ async function runSmoke (win, app) {
     check('markdown link renders', mdResult.link === 'https://mozi.test', mdResult.link)
     check('markdown stats shown', /字符/.test(mdResult.stats), mdResult.stats)
     check('markdown mermaid diagram renders', mdResult.mermaidSvg === 1 && mdResult.mermaidError === 0, `svg=${mdResult.mermaidSvg} err=${mdResult.mermaidError}`)
+
+    // mermaid must repaint when the app theme changes (it stayed dark before)
+    const themeRepaint = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const svgAt = () => { const h = document.querySelector('.md-mermaid'); return h && h.querySelector('svg') ? h.innerHTML : '' }
+      // theme markers: dark theme paints light text (#fff-ish), default paints dark text
+      const textTone = (html) => {
+        const m = html.match(/fill:\s*(#[0-9a-fA-F]{3,6})/g) || []
+        return m.length ? m[0].split(':')[1].trim().toLowerCase() : ''
+      }
+      const lightSvg = svgAt()
+      const lightTone = textTone(lightSvg)
+      document.querySelector('#themeSeg [data-theme-choice="dark"]').click()
+      await wait(120)
+      document.querySelector('#md-in').dispatchEvent(new Event('input', { bubbles: true }))
+      await wait(3000)
+      const darkSvg = svgAt()
+      const darkTone = textTone(darkSvg)
+      document.querySelector('#themeSeg [data-theme-choice="light"]').click()
+      await wait(120)
+      document.querySelector('#md-in').dispatchEvent(new Event('input', { bubbles: true }))
+      await wait(3000)
+      const backTone = textTone(svgAt())
+      return JSON.stringify({
+        lightTone, darkTone, backTone,
+        changed: lightTone !== darkTone,
+        restored: backTone === lightTone
+      })
+    })()`))
+    check('mermaid repaints on theme switch', themeRepaint.changed && themeRepaint.restored, JSON.stringify(themeRepaint))
     check('markdown image renders', mdResult.image.ok, `w=${mdResult.image.w}`)
     await capture(shot('-markdown'))
 

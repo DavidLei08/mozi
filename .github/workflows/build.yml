@@ -126,7 +126,7 @@ jobs:
         with:
           generate_release_notes: true
           # a re-tagged build must be able to replace its own assets
-          overwrite: true
+          overwrite_files: true
           files: dist/*
           body: |
             本地优先的桌面工具箱，11 个工具，数据不出机器。
