@@ -80,7 +80,8 @@
         "AppImage"
       ]
     },
-    "electronDist": "node_modules/electron/dist"
+    "electronDist": "node_modules/electron/dist",
+    "publish": "never"
   },
   "homepage": "https://github.com/DavidLei08/mozi#readme",
   "repository": {

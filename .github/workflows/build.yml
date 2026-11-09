@@ -79,7 +79,6 @@ jobs:
             release/*.zip
             release/*.exe
             release/*.blockmap
-            release/latest*.yml
 
   release:
     needs: build
