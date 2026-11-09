@@ -17,9 +17,20 @@ function normalizeHeaders (headers) {
   if (Array.isArray(headers)) {
     for (const h of headers) {
       if (!h || h.enabled === false) continue
-      const key = String(h.key ?? '').trim()
+      // The renderer sends resolved headers as [key, value] pairs; tests and
+      // callers may send { key, value }. Accept both so no header is dropped.
+      let key
+      let value
+      if (Array.isArray(h)) {
+        key = h[0]
+        value = h[1]
+      } else {
+        key = h.key
+        value = h.value
+      }
+      key = String(key ?? '').trim()
       if (!key) continue
-      out[key] = String(h.value ?? '')
+      out[key] = String(value ?? '')
     }
     return out
   }

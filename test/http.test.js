@@ -31,6 +31,35 @@ test('GET returns text body, status, headers and timings', async () => {
   } finally { server.close() }
 })
 
+test('headers arrive as [key, value] pairs, matching the renderer', async () => {
+  const { server, base } = await listen((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({
+      auth: req.headers.authorization,
+      custom: req.headers['x-test'],
+      accept: req.headers.accept
+    }))
+  })
+  try {
+    // effectiveHeaders() in the renderer returns resolved headers as [key, value]
+    // tuples — the exact shape that previously dropped every header.
+    const res = await send({
+      method: 'GET',
+      url: `${base}/echo`,
+      headers: [
+        ['Authorization', 'Bearer sk-abc123'],
+        ['X-Test', 'pair-form'],
+        ['Accept', 'application/json']
+      ]
+    })
+    assert.equal(res.status, 200)
+    const parsed = JSON.parse(res.text)
+    assert.equal(parsed.auth, 'Bearer sk-abc123')
+    assert.equal(parsed.custom, 'pair-form')
+    assert.equal(parsed.accept, 'application/json')
+  } finally { server.close() }
+})
+
 test('POST sends JSON body and headers', async () => {
   const { server, base } = await listen(async (req, res) => {
     const chunks = []
