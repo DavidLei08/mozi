@@ -18,7 +18,14 @@
             <p class="muted">一个工作台，收好每天要用的小工具</p>
           </div>
         </div>
-        <div class="home-meta muted small">本地运行 · 数据不出机器</div>
+        <div class="home-right">
+          <div class="seg theme-seg" id="themeSeg" role="radiogroup" aria-label="主题">
+            <button class="seg-btn" data-theme-choice="light" role="radio" title="浅色">☀</button>
+            <button class="seg-btn" data-theme-choice="system" role="radio" title="跟随系统">◐</button>
+            <button class="seg-btn" data-theme-choice="dark" role="radio" title="深色">☾</button>
+          </div>
+          <div class="home-meta muted small">本地运行 · 数据不出机器</div>
+        </div>
       </header>
 
       <div class="home-search">
@@ -294,7 +301,7 @@
     <!-- ======================= ESCAPE ======================= -->
     <section class="view tool-view" id="view-escape" data-view="escape">
       <header class="tool-head drag-region">
-        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
         <h2>字符转义 / 去转义</h2>
         <div class="tool-head-actions">
           <select id="esc-mode" class="mini-select">
@@ -336,7 +343,7 @@
     <!-- ======================= JSON ======================= -->
     <section class="view tool-view" id="view-json" data-view="json">
       <header class="tool-head drag-region">
-        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
         <h2>JSON 格式化</h2>
         <div class="tool-head-actions">
           <button id="json-format2" class="btn-secondary">格式化 2 空格</button>
@@ -374,7 +381,7 @@
     <!-- ======================= BASE64 (text + images) ======================= -->
     <section class="view tool-view" id="view-base64" data-view="base64">
       <header class="tool-head drag-region">
-        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
         <h2>Base64 工具箱</h2>
         <div class="tool-head-actions">
           <div class="seg" id="b64-tabs">
@@ -459,9 +466,10 @@
     <!-- ======================= MARKDOWN ======================= -->
     <section class="view tool-view" id="view-markdown" data-view="markdown">
       <header class="tool-head drag-region">
-        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
         <h2>Markdown 编辑器</h2>
         <div class="tool-head-actions">
+          <button class="btn-secondary" id="md-open">打开 .md 文件…</button>
           <button class="btn-secondary" id="md-image">插入图片</button>
           <button class="btn-secondary" id="md-sample">插入示例</button>
           <button class="btn-secondary" id="md-copy-html">复制 HTML</button>
@@ -484,7 +492,7 @@
     <!-- ======================= TIMESTAMP ======================= -->
     <section class="view tool-view" id="view-timestamp" data-view="timestamp">
       <header class="tool-head drag-region">
-        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
         <h2>时间戳转换</h2>
         <div class="tool-head-actions">
           <button class="btn-primary" id="ts-now">现在</button>
@@ -522,7 +530,7 @@
     <!-- ======================= JWT ======================= -->
     <section class="view tool-view" id="view-jwt" data-view="jwt">
       <header class="tool-head drag-region">
-        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
         <h2>JWT 解析</h2>
         <div class="tool-head-actions">
           <button class="btn-secondary" data-clear="jwt-in">清空</button>
@@ -561,7 +569,7 @@
     <!-- ======================= HASH ======================= -->
     <section class="view tool-view" id="view-hash" data-view="hash">
       <header class="tool-head drag-region">
-        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
         <h2>Hash 摘要</h2>
         <div class="tool-head-actions">
           <div class="seg" id="hash-tabs">
@@ -601,7 +609,7 @@
     <!-- ======================= GENERATOR ======================= -->
     <section class="view tool-view" id="view-generator" data-view="generator">
       <header class="tool-head drag-region">
-        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
         <h2>UUID / 密码生成</h2>
         <div class="tool-head-actions">
           <div class="seg" id="gen-tabs">
@@ -652,7 +660,7 @@
     <!-- ======================= REGEX ======================= -->
     <section class="view tool-view" id="view-regex" data-view="regex">
       <header class="tool-head drag-region">
-        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
         <h2>正则测试</h2>
         <div class="tool-head-actions">
           <div class="rx-flags" id="rx-flags">
@@ -700,7 +708,7 @@
     <!-- ======================= CODE GEN ======================= -->
     <section class="view tool-view" id="view-codegen" data-view="codegen">
       <header class="tool-head drag-region">
-        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
         <h2>cURL 转代码</h2>
         <div class="tool-head-actions">
           <select id="cg-lang" class="mini-select"></select>

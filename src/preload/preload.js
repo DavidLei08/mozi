@@ -48,6 +48,8 @@ contextBridge.exposeInMainWorld('api', {
     text: (payload) => ipcRenderer.invoke('hash:text', payload)
   },
 
+  setTheme: (mode) => ipcRenderer.invoke('theme:set', mode),
+
   clipboard: {
     write: (text) => ipcRenderer.invoke('clipboard:write', text),
     read: () => ipcRenderer.invoke('clipboard:read')

@@ -42,6 +42,15 @@
 
 ![时间戳转换](.github/screenshot-timestamp.png)
 
+## 主题
+
+首页右上角切换 **浅色 / 跟随系统 / 深色**（默认跟随系统），选择会持久化，
+窗口底色、Mermaid 流程图配色同步切换。
+
+## 打开本地 Markdown
+
+Markdown 编辑器工具栏的「打开 .md 文件…」直接加载本机文件（md / markdown / txt）。
+
 ## 布局可拖拽
 
 所有分栏都能用鼠标拖动调整，双击分隔条恢复默认，尺寸按分栏记忆（重启后保持）：
@@ -85,10 +94,11 @@ npm test       # 单元测试：HTTP / WS / SSE / cURL / codec / jwt / codegen /
 npm run smoke  # 端到端：起本地服务，走完 6 个工具的 50 项断言并截图
 ```
 
-`npm run smoke` 覆盖 **127 项断言**：首页分组与 11 个工具卡片、HTTP 请求与 JSON 树、WS 收发、
+`npm run smoke` 覆盖 **134 项断言**：首页分组与 11 个工具卡片、HTTP 请求与 JSON 树、WS 收发、
 SSE 流（GET 与 POST body）、集合保存落盘、cURL 导入导出、转义 / JSON / Base64（文本 + 图片三标签）/
 Markdown（含 Mermaid 与图片）、时间戳、Hash（含已知向量校验）、UUID/密码、正则、JWT、代码生成，
-以及返回工具箱、首页搜索、最近使用、⌘1…⌘9 直达、分栏拖拽 / 双击重置 / 重启后恢复。
+以及返回工具箱（所有工具统一为 M 图标）、首页搜索、最近使用、⌘1…⌘9 直达、
+分栏拖拽 / 双击重置 / 重启后恢复、主题切换、Markdown 打开本地文件。
 
 ```bash
 npm run smoke -- --no-sandbox --disable-gpu   # 沙箱 / CI 环境

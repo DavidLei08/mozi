@@ -404,7 +404,7 @@ flowchart LR
           try {
             window.mermaid.initialize({
               startOnLoad: false,
-              theme: 'dark',
+              theme: (document.documentElement.dataset.theme === 'light') ? 'default' : 'dark',
               securityLevel: 'strict',
               fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", sans-serif',
               themeVariables: { fontSize: '14px' }
@@ -539,6 +539,15 @@ flowchart LR
       if (!file) return
       e.preventDefault()
       await insertImageFile(file)
+    })
+
+    $('#md-open').addEventListener('click', async () => {
+      const result = await api.dialog.openText({ filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'txt'] }] })
+      if (!result.ok) return
+      input.value = result.content
+      render()
+      const name = String(result.path).split(/[\\/]/).pop()
+      toast(`已打开 ${name}`)
     })
 
     $('#md-sample').addEventListener('click', () => { input.value = SAMPLE_MD; render(); toast('已插入示例') })

@@ -1,7 +1,7 @@
 {
   "name": "mozi",
   "productName": "Mozi",
-  "version": "0.3.2",
+  "version": "0.4.0",
   "description": "Mozi — a local toolbox for API testing, encoding, JSON, images and Markdown",
   "main": "src/main/main.js",
   "author": "Mozi contributors",

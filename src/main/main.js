@@ -35,7 +35,7 @@ function createWindow () {
     minWidth: 1024,
     minHeight: 640,
     show: false,
-    backgroundColor: '#0e1015',
+    backgroundColor: nativeTheme.shouldUseDarkColors ? '#0e1015' : '#f4f6fa',
     titleBarStyle: isMac ? 'hiddenInset' : 'default',
     trafficLightPosition: isMac ? { x: 16, y: 18 } : undefined,
     webPreferences: {
@@ -265,6 +265,12 @@ function registerIpc () {
     return { ok: true, algorithms: algos, results: out }
   })
 
+  ipcMain.handle('theme:set', (_event, mode) => {
+    const m = ['light', 'dark', 'system'].includes(mode) ? mode : 'system'
+    nativeTheme.themeSource = m
+    return { ok: true, resolvedDark: nativeTheme.shouldUseDarkColors }
+  })
+
   ipcMain.handle('clipboard:write', (_event, text) => { clipboard.writeText(String(text)); return { ok: true } })
   ipcMain.handle('clipboard:read', () => clipboard.readText())
   ipcMain.handle('shell:open-external', (_event, url) => {
@@ -275,7 +281,7 @@ function registerIpc () {
 
 app.whenReady().then(async () => {
   store = createStore(app.getPath('userData'))
-  nativeTheme.themeSource = 'dark'
+  nativeTheme.themeSource = 'system'
   registerIpc()
   buildMenu()
   createWindow()

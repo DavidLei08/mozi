@@ -13,7 +13,7 @@
     history: [],
     environments: [{ id: uid(), name: 'Default', vars: [] }],
     activeEnvId: null,
-    settings: { historyLimit: 300, timeoutMs: 120000, theme: 'dark' },
+    settings: { historyLimit: 300, timeoutMs: 120000, theme: 'system' },
     tabs: [],
     activeTabId: null,
     ui: { view: 'home', toolQuery: '', recent: [], side: 'collections', reqTab: 'params', respTab: 'pretty', search: '', split: 52, collapsed: [] }
@@ -1417,6 +1417,35 @@
 
   function closeModal () { $('#modal').classList.add('hidden') }
 
+  // ---------------------------------------------------------------- theme
+  function applyTheme (mode) {
+    state.settings.theme = mode
+    const resolved = mode === 'system'
+      ? ((window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light')
+      : mode
+    document.documentElement.dataset.theme = resolved
+    document.body.dataset.theme = resolved
+    for (const btn of $$('#themeSeg .seg-btn')) {
+      const active = btn.dataset.themeChoice === mode
+      btn.classList.toggle('is-active', active)
+      btn.setAttribute('aria-checked', String(active))
+    }
+    // keep the window background in sync so the first paint after reload matches
+    document.body.style.backgroundColor = resolved === 'light' ? '#f4f6fa' : '#0e1015'
+    if (api.setTheme) api.setTheme(mode)
+    // mermaid diagrams were rendered with the previous palette
+    if (state.ui.view === 'markdown' && typeof window.__moziRenderMarkdown === 'function') {
+      window.__moziRenderMarkdown()
+    }
+    saveSoon()
+  }
+
+  if (window.matchMedia) {
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (state.settings.theme === 'system') applyTheme('system')
+    })
+  }
+
   // ---------------------------------------------------------------- tool registry
   const TOOL_GROUPS = [
     {
@@ -1546,6 +1575,10 @@
       })
     })
 
+    $('#themeSeg').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-theme-choice]')
+      if (btn) applyTheme(btn.dataset.themeChoice)
+    })
     $('#toolGroups').addEventListener('click', (e) => {
       const target = e.target.closest('.tool-card, .recent-chip')
       if (target) showView(target.dataset.open)
@@ -1794,6 +1827,7 @@
 
     $('#opt-timing').checked = state.settings.showTiming !== false
     wire()
+    applyTheme(state.settings.theme || 'system')
     renderAll()
     renderSidebar()
     renderHome('')
