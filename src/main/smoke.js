@@ -9,6 +9,19 @@ const TINY_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8
 
 function startServers () {
   const jsonServer = http.createServer((req, res) => {
+    if (req.url.startsWith('/grant')) {
+      res.writeHead(200, {
+        'Content-Type': 'text/plain',
+        'Set-Cookie': ['sid=smoke-session-42; Path=/', 'prefs=dark; Max-Age=86400']
+      })
+      res.end('granted')
+      return
+    }
+    if (req.url.startsWith('/whoami')) {
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ cookie: req.headers.cookie || null }))
+      return
+    }
     if (req.url.startsWith('/echo-headers')) {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({
@@ -122,6 +135,34 @@ async function runSmoke (win, app) {
     check('fresh profile has no recent strip', !freshStrip.hasStrip)
     const icons = JSON.parse(await step(`JSON.stringify([...document.querySelectorAll('.tool-icon')].map(e => e.textContent))`))
     check('every tool icon renders', icons.length === 11 && icons.every((i) => i && i.trim().length > 0 && !/\n/.test(i)), JSON.stringify(icons))
+    const saveBtn = JSON.parse(await step(`JSON.stringify({
+      exists: !!document.querySelector('#btn-save'),
+      label: (document.querySelector('#btn-save') || {}).textContent || '',
+      cls: (document.querySelector('#btn-save') || {}).className || ''
+    })`))
+    check('save button is a visible labeled button', saveBtn.exists && saveBtn.label.trim() === '保存' && saveBtn.cls.includes('save-btn'), JSON.stringify(saveBtn))
+
+    const scrollLayout = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const groups = document.querySelector('#toolGroups')
+      // make the list genuinely overflow, then verify it is the scroller
+      groups.style.maxHeight = '160px'
+      groups.scrollTop = 0
+      groups.scrollTop = 400
+      await wait(80)
+      const scrolled = groups.scrollTop
+      groups.style.maxHeight = ''
+      const head = document.querySelector('.home-head').getBoundingClientRect()
+      const view = document.querySelector('#view-home').getBoundingClientRect()
+      return JSON.stringify({
+        scrolled,
+        headFixedInsideView: head.top >= view.top - 1 && head.bottom <= view.bottom,
+        viewOverflow: getComputedStyle(document.querySelector('#view-home')).overflow
+      })
+    })()`))
+    check('only the tool list scrolls', scrollLayout.scrolled > 0, String(scrollLayout.scrolled))
+    check('home header stays fixed', scrollLayout.headFixedInsideView && scrollLayout.viewOverflow === 'hidden', JSON.stringify(scrollLayout))
+
     await capture(shot('-home'))
 
     // open the HTTP tool
@@ -448,6 +489,37 @@ async function runSmoke (win, app) {
     })`))
     check('split restores after reload', Math.abs(restored.sidebar - redrag.width) < 4, `${redrag.width} -> ${restored.sidebar}`)
     check('vertical split restores after reload', Math.abs(restored.request - verticalRestoredTarget) < 12, `${verticalRestoredTarget} -> ${restored.request}`)
+
+    // ============ COOKIES ============
+    const cookieFlow = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const setValue = (el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })) }
+      document.querySelector('#btn-new-tab').click()
+      await wait(150)
+      const url = document.querySelector('#urlInput')
+      url.value = '${servers.base}/grant'; setValue(url, url.value)
+      document.querySelector('#btn-send').click()
+      for (let i = 0; i < 80; i++) { await wait(50); if (document.querySelector('#respRaw').textContent.includes('granted')) break }
+      await wait(150)
+      // the jar should now hold both cookies
+      const jar = (window.__moziCookieJarSnapshot && window.__moziCookieJarSnapshot()) || []
+      document.querySelector('.req-tab[data-reqtab="cookies"]').click()
+      await wait(150)
+      const rows = document.querySelectorAll('#cookieTable .kv-row').length
+      const badge = document.querySelector('#badge-cookies').textContent
+      // second request to the same host must carry them
+      url.value = '${servers.base}/whoami'; setValue(url, url.value)
+      document.querySelector('#btn-send').click()
+      for (let i = 0; i < 80; i++) { await wait(50); if (document.querySelector('#respRaw').textContent.includes('sid=')) break }
+      await wait(120)
+      const echoed = document.querySelector('#respRaw').textContent
+      return JSON.stringify({ jarNames: jar.map(c => c.name), rows, badge, echoed: echoed.slice(0, 200) })
+    })()`))
+    check('set-cookie lands in the jar', cookieFlow.jarNames.includes('sid') && cookieFlow.jarNames.includes('prefs'), cookieFlow.jarNames.join(','))
+    check('cookie panel lists the jar', cookieFlow.rows === 2, String(cookieFlow.rows))
+    check('cookies tab badge counts', cookieFlow.badge === '2', cookieFlow.badge)
+    check('jar cookies are sent on the next request', cookieFlow.echoed.includes('sid=smoke-session-42'), cookieFlow.echoed.slice(0, 80))
+    await capture(shot('-cookies'))
 
     // ============ SAVE + CURL ============
     const saveResult = JSON.parse(await step(`(async () => {
@@ -893,6 +965,16 @@ async function runSmoke (win, app) {
     check('codegen java', /OkHttp|Request\.Builder/.test(cgResult.results.java))
     check('codegen keeps query param', Object.values(cgResult.results).every((c) => c.includes('page') || c.includes('v1/update')), 'params merged')
     check('codegen status feedback', /已生成/.test(cgResult.status), cgResult.status)
+
+    // the bridge that imports the live request from the HTTP tool
+    const cgBridge = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const before = document.querySelector('#cg-in').value
+      document.querySelector('#cg-from-current').click()
+      await wait(250)
+      return JSON.stringify({ changed: document.querySelector('#cg-in').value !== before, sample: document.querySelector('#cg-in').value.slice(0, 60) })
+    })()`))
+    check('codegen imports the current request', cgBridge.changed && /curl/.test(cgBridge.sample), cgBridge.sample)
     await visibleCheck('codegen')
     await capture(shot('-codegen'))
 

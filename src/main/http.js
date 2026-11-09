@@ -5,6 +5,7 @@ const https = require('node:https')
 const fs = require('node:fs/promises')
 const zlib = require('node:zlib')
 const { URL } = require('node:url')
+const { Jar } = require('../renderer/lib/cookies.js')
 
 const MAX_RESPONSE_BYTES = 30 * 1024 * 1024
 const MAX_REDIRECTS = 10
@@ -219,6 +220,12 @@ async function send (payload) {
 
   const headers = normalizeHeaders(payload.headers)
   headers['Accept-Encoding'] = headers['Accept-Encoding'] || 'gzip, deflate, br'
+  if (Array.isArray(payload.cookies) && payload.cookies.length && !hasHeader(headers, 'cookie')) {
+    try {
+      const jarValue = new Jar(payload.cookies).headerValue(current.href)
+      if (jarValue) headers.Cookie = jarValue
+    } catch { /* malformed jar entries are simply skipped */ }
+  }
 
   const built = await buildBody(payload.body)
   let buffer = built.buffer
@@ -261,6 +268,7 @@ async function send (payload) {
         httpVersion: response.httpVersion,
         headers: flattenHeaders(response.headers),
         contentType,
+        setCookies: Array.isArray(response.headers['set-cookie']) ? response.headers['set-cookie'] : [],
         finalUrl: current.href,
         redirects,
         size,

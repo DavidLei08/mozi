@@ -10,6 +10,7 @@
   // ---------------------------------------------------------------- state
   const defaults = () => ({
     collections: [],
+    cookies: [],
     history: [],
     environments: [{ id: uid(), name: 'Default', vars: [] }],
     activeEnvId: null,
@@ -24,6 +25,13 @@
   let renderTimer = null
 
   function activeTab () { return state.tabs.find((t) => t.id === state.activeTabId) || null }
+  function cookieJar () {
+    if (!window.Cookies) return { match: () => [], store: () => null, prune: () => 0, toJSON: () => state.cookies }
+    state._jar = state._jar || new window.Cookies.Jar(state.cookies)
+    state._jar.cookies = state.cookies
+    return state._jar
+  }
+
   function activeEnv () { return state.environments.find((e) => e.id === state.activeEnvId) || state.environments[0] || null }
 
   function saveSoon () {
@@ -34,6 +42,7 @@
   async function saveNow () {
     const payload = {
       collections: state.collections,
+      cookies: state.cookies,
       history: state.history,
       environments: state.environments,
       activeEnvId: state.activeEnvId,
@@ -513,6 +522,7 @@
     state.ui.reqTab = name
     $$('.req-tab').forEach((b) => b.classList.toggle('is-active', b.dataset.reqtab === name))
     $$('.panel').forEach((p) => p.classList.toggle('is-active', p.dataset.panel === name))
+    if (name === 'cookies') renderCookies()
     if (doRender !== false) saveSoon()
   }
 
@@ -522,6 +532,9 @@
     $('#badge-headers').textContent = (req.headers || []).filter((h) => h.key).length || ''
     $('#badge-body').textContent = req.body && req.body.type !== 'none' ? '•' : ''
     $('#badge-auth').textContent = req.auth && req.auth.type !== 'none' ? '•' : ''
+    const jar = cookieJar()
+    const live = jar.match(resolveEnvString(req.url || 'http://x'))
+    $('#badge-cookies').textContent = live.length ? String(live.length) : ''
   }
 
   function renderKv (container, list, opts) {
@@ -642,6 +655,48 @@
     updateBadges()
   }
 
+  function renderCookies () {
+    const box = $('#cookieTable')
+    if (!box) return
+    box.textContent = ''
+    const host = (() => {
+      try { return new URL(resolveEnvString(activeTab().request.url || 'http://x')).hostname } catch { return '' }
+    })()
+    $('#cookieHost').textContent = host ? `（当前主机 ${host}）` : ''
+    state.cookies.forEach((c, index) => {
+      const row = el('div', 'kv-row')
+      const chk = document.createElement('input')
+      chk.type = 'checkbox'
+      chk.checked = c.enabled !== false
+      chk.addEventListener('change', () => { c.enabled = chk.checked; updateBadges(); saveSoon() })
+      row.appendChild(chk)
+      const name = document.createElement('input')
+      name.type = 'text'
+      name.value = c.name || ''
+      name.spellcheck = false
+      name.addEventListener('input', () => { c.name = name.value; saveSoon() })
+      row.appendChild(name)
+      const value = document.createElement('input')
+      value.type = 'text'
+      value.value = c.value || ''
+      value.spellcheck = false
+      value.addEventListener('input', () => { c.value = value.value; saveSoon() })
+      row.appendChild(value)
+      const meta = el('span', 'cookie-meta')
+      const expiry = c.expires ? (c.expires <= Date.now() ? '已过期' : new Date(c.expires).toLocaleString()) : '会话'
+      meta.textContent = `${c.domain || ''}${c.path || '/'} · ${expiry}`
+      meta.title = meta.textContent
+      row.appendChild(meta)
+      const del = el('button', 'mini-icon', '✕')
+      del.title = '删除'
+      del.addEventListener('click', () => { state.cookies.splice(index, 1); renderCookies(); updateBadges(); saveSoon() })
+      row.appendChild(del)
+      box.appendChild(row)
+    })
+    if (!state.cookies.length) box.appendChild(el('p', 'muted small', '还没有 Cookie。发送请求后自动收集，或手动添加。'))
+    updateBadges()
+  }
+
   function renderAuth () {
     const req = activeTab().request
     const auth = req.auth || { type: 'none' }
@@ -743,6 +798,7 @@
       method: req.method,
       url,
       headers,
+      cookies: state.cookies,
       body,
       options: {
         followRedirects: req.options.followRedirects !== false,
@@ -765,6 +821,12 @@
     try {
       const payload = buildPayload(tab.request)
       const res = await api.http.send(payload)
+      if (res && Array.isArray(res.setCookies) && res.setCookies.length) {
+        const jar = cookieJar()
+        for (const value of res.setCookies) jar.store(value, payload.url)
+        state.cookies = jar.cookies
+        renderCookies()
+      }
       tab.response = res
       renderResponse()
       if (!res.error) $('#respNote').textContent = ''
@@ -1417,6 +1479,17 @@
 
   function closeModal () { $('#modal').classList.add('hidden') }
 
+  // ---------------------------------------------------------------- bridges
+  // exposed for tools2.js (cURL 转代码) and the smoke harness
+  window.__moziCookieJarSnapshot = function () { return state.cookies }
+
+  window.__moziCurrentRequest = function () {
+    const tab = activeTab()
+    if (!tab || tab.request.kind !== 'http') return ''
+    const payload = buildPayload(tab.request)
+    return window.Curl.build(tab.request, payload.url, payload.headers, tab.request.body && tab.request.body.type !== 'none' ? { present: true } : null)
+  }
+
   // ---------------------------------------------------------------- theme
   function applyTheme (mode) {
     state.settings.theme = mode
@@ -1643,6 +1716,8 @@
       activeTab().request.url = e.target.value
       syncParamsFromUrl()
       renderTabs()
+      if (state.ui.reqTab === 'cookies') renderCookies()
+      else updateBadges()
       markDirty()
     })
 
@@ -1661,6 +1736,19 @@
 
     $('#btn-add-param').addEventListener('click', () => { activeTab().request.params.push({ key: '', value: '', enabled: true }); renderParams(); markDirty() })
     $('#btn-add-header').addEventListener('click', () => { activeTab().request.headers.push({ key: '', value: '', enabled: true }); renderHeaders(); markDirty() })
+    $('#btn-cookie-add').addEventListener('click', () => {
+      let host = ''
+      try { host = new URL(resolveEnvString(activeTab().request.url || 'http://x')).hostname } catch { host = '' }
+      state.cookies.push({ name: 'name', value: '', domain: host, path: '/', hostOnly: true, secure: false, expires: null, enabled: true })
+      renderCookies()
+    })
+    $('#btn-cookie-clear').addEventListener('click', () => {
+      state.cookies = []
+      renderCookies()
+      toast('Cookie 已清空')
+      saveSoon()
+    })
+
     $('#btn-header-preset').addEventListener('click', () => {
       const headers = activeTab().request.headers
       if (!headers.some((h) => /^content-type$/i.test(h.key))) headers.push({ key: 'Content-Type', value: 'application/json', enabled: true })
@@ -1826,6 +1914,11 @@
     if (!state.tabs.some((t) => t.id === state.activeTabId)) state.activeTabId = state.tabs[0].id
 
     $('#opt-timing').checked = state.settings.showTiming !== false
+    if (window.Cookies) {
+      const jar = cookieJar()
+      jar.prune()
+      state.cookies = jar.cookies
+    }
     wire()
     applyTheme(state.settings.theme || 'system')
     renderAll()

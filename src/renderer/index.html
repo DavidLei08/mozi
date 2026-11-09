@@ -102,7 +102,7 @@
               <div class="urlbar-actions">
                 <button id="btn-curl-export" class="icon-btn" title="复制为 cURL">cURL</button>
                 <button id="btn-curl-import" class="icon-btn" title="导入 cURL (⌘I)">⇩</button>
-                <button id="btn-save" class="icon-btn" title="保存请求 (⌘S)">⌘S</button>
+                <button id="btn-save" class="save-btn" title="保存请求 (⌘S)">保存</button>
               </div>
             </div>
 
@@ -112,6 +112,7 @@
                 <button class="req-tab" data-reqtab="headers">Headers <span class="badge" id="badge-headers"></span></button>
                 <button class="req-tab" data-reqtab="body">Body <span class="badge" id="badge-body"></span></button>
                 <button class="req-tab" data-reqtab="auth">Auth <span class="badge" id="badge-auth"></span></button>
+                <button class="req-tab" data-reqtab="cookies">Cookies <span class="badge" id="badge-cookies"></span></button>
               </div>
               <div class="req-options">
                 <label class="chk"><input type="checkbox" id="opt-follow" checked /> follow redirects</label>
@@ -211,7 +212,24 @@
                 </div>
               </div>
 
-              <div class="panel" data-panel="auth">
+              <div class="panel" data-panel="cookies">
+              <div class="cookie-jar">
+                <div class="cookie-jar-head">
+                  <div class="mini-label">当前会话的 Cookie Jar <span id="cookieHost" class="muted small"></span></div>
+                  <div class="row-btns">
+                    <button class="ghost-btn" id="btn-cookie-add">+ 手动添加</button>
+                    <button class="ghost-btn" id="btn-cookie-clear">清空</button>
+                  </div>
+                </div>
+                <div class="table-head">
+                  <span class="col-chk"></span><span class="col-key">名称</span><span class="col-val">值</span><span class="col-act">域 / 过期</span>
+                </div>
+                <div id="cookieTable" class="kv-table cookie-table"></div>
+                <p class="muted small" id="cookieHint">勾选的 Cookie 会按域名与路径匹配自动附加到请求；响应里的 Set-Cookie 会自动存入。</p>
+              </div>
+            </div>
+
+            <div class="panel" data-panel="auth">
                 <div class="auth-grid">
                   <label class="field">
                     <span>类型</span>
@@ -758,6 +776,7 @@
   <script src="lib/json-tree.js"></script>
   <script src="lib/curl.js"></script>
   <script src="lib/split.js"></script>
+  <script src="lib/cookies.js"></script>
   <script src="lib/codec.js"></script>
   <script src="lib/jwt.js"></script>
   <script src="lib/codegen.js"></script>

@@ -373,11 +373,11 @@ body.platform-darwin .titlebar { padding-left: 86px; }
 #view-http .app { height: 100%; }
 
 /* ---------- home ---------- */
-.home-view { overflow: auto; background:
+.home-view { background:
   radial-gradient(1200px 600px at 10% -10%, rgba(108,140,255,.16), transparent 60%),
   radial-gradient(900px 500px at 110% 10%, rgba(77,208,196,.12), transparent 55%),
   var(--bg); }
-.home-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 34px 40px 10px; -webkit-app-region: drag; }
+.home-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; padding: 34px 40px 10px; flex: none; -webkit-app-region: drag; }
 body.platform-darwin .home-head { padding-top: 44px; }
 .home-brand { display: flex; align-items: center; gap: 16px; }
 .home-brand h1 { margin: 0; font-size: 30px; letter-spacing: .5px; }
@@ -417,7 +417,7 @@ body.platform-darwin .home-head { padding-top: 44px; }
   font-size: 10px; letter-spacing: .5px; padding: 3px 7px; border-radius: 999px;
   background: rgba(108,140,255,.18); color: var(--accent);
 }
-.home-foot { padding: 6px 40px 30px; }
+.home-foot { padding: 6px 40px 30px; flex: none; }
 
 /* ---------- tool chrome ---------- */
 .tool-view { background: var(--bg); }
@@ -552,13 +552,13 @@ body.platform-darwin .tool-head { padding-left: 88px; }
 @media (max-width: 720px) { .tool-card { max-width: 100%; } }
 
 /* ===================== grouped home + search ===================== */
-.home-search { display: flex; align-items: center; gap: 12px; padding: 18px 40px 4px; }
+.home-search { display: flex; align-items: center; gap: 12px; padding: 18px 40px 4px; flex: none; }
 .home-search input {
   flex: 1; max-width: 420px; padding: 9px 12px; border-radius: 9px;
   background: var(--bg-2); border: 1px solid var(--line); outline: none;
 }
 .home-search input:focus { border-color: var(--accent); }
-.tool-groups { padding: 8px 40px 24px; display: grid; gap: 22px; }
+.tool-groups { flex: 1; min-height: 0; overflow: auto; padding: 8px 40px 24px; display: grid; gap: 22px; align-content: start; }
 .tool-group h3 {
   margin: 0 0 10px; font-size: 11px; letter-spacing: 1.2px; text-transform: uppercase;
   color: var(--text-mute);
@@ -709,3 +709,18 @@ body.is-dragging .split-handle { pointer-events: auto; }
 
 /* keep button captions on one line when the pane is narrow */
 .send-btn, .send-btn.small { white-space: nowrap; }
+
+/* ===================== save button + cookie panel ===================== */
+.save-btn {
+  padding: 8px 14px; border-radius: 8px;
+  border: 1px solid var(--accent); background: transparent;
+  color: var(--accent); font-weight: 650; font-size: 12px; white-space: nowrap;
+}
+.save-btn:hover { background: var(--accent); color: #fff; }
+[data-theme="light"] .save-btn:hover { color: #fff; }
+.cookie-jar { max-width: 860px; }
+.cookie-jar-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+.cookie-table .kv-row { grid-template-columns: 26px minmax(110px, .9fr) minmax(140px, 1.2fr) minmax(150px, .9fr) 26px; }
+.table-head { grid-template-columns: 26px minmax(110px, .9fr) minmax(140px, 1.2fr) minmax(150px, .9fr) 26px; }
+.cookie-meta { font-family: var(--mono); font-size: 11px; color: var(--text-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+#cookieHint { margin: 10px 0 0; }
