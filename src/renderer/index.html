@@ -1,0 +1,760 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob: https: http: file:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'none'" />
+  <title>Mozi</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body data-pane="app">
+  <div id="views">
+    <!-- ======================= HOME ======================= -->
+    <section class="view is-active home-view" id="view-home" data-view="home">
+      <header class="home-head drag-region">
+        <div class="home-brand">
+          <span class="brand-mark big">M</span>
+          <div>
+            <h1>Mozi</h1>
+            <p class="muted">一个工作台，收好每天要用的小工具</p>
+          </div>
+        </div>
+        <div class="home-meta muted small">本地运行 · 数据不出机器</div>
+      </header>
+
+      <div class="home-search">
+        <input id="toolSearch" type="search" placeholder="搜索工具…  ⌘K" spellcheck="false" autocomplete="off" />
+        <span class="muted small" id="toolCount"></span>
+      </div>
+
+      <div id="toolGroups" class="tool-groups"></div>
+
+      <footer class="home-foot muted small">Mozi v0.2.0 · Electron 桌面端 · macOS / Windows</footer>
+    </section>
+
+    <!-- ======================= HTTP TOOL ======================= -->
+    <section class="view" id="view-http" data-view="http">
+      <div class="app">
+        <aside class="sidebar" data-pane="sidebar">
+          <div class="sidebar-head">
+            <div class="brand">
+              <button id="btn-home" class="brand-mark as-btn" title="返回工具箱 (Esc)">M</button>
+              <span class="brand-name">请求工具</span>
+            </div>
+            <div class="sidebar-actions">
+              <button id="btn-new-request" class="icon-btn" title="New request (⌘N)">+</button>
+            </div>
+          </div>
+
+          <div class="search-wrap">
+            <input id="search" class="search" type="search" placeholder="搜索请求…  ⌘K" spellcheck="false" />
+          </div>
+
+          <div class="side-tabs" role="tablist">
+            <button class="side-tab is-active" data-side="collections" role="tab">集合</button>
+            <button class="side-tab" data-side="history" role="tab">历史</button>
+          </div>
+
+          <div id="sidebar-scroll" class="sidebar-scroll">
+            <div id="collectionTree" class="tree"></div>
+            <div id="historyList" class="history hidden"></div>
+          </div>
+
+          <div class="sidebar-foot">
+            <button id="btn-new-collection" class="mini-btn" title="New collection">新建集合</button>
+            <div class="env-row">
+              <select id="envSelect" class="env-select" title="Active environment"></select>
+              <button id="btn-env-manage" class="icon-btn" title="管理环境">⚙</button>
+            </div>
+          </div>
+        </aside>
+
+        <main class="workspace" data-pane="workspace">
+          <header class="titlebar drag-region">
+            <div class="tabs" id="tabbar"></div>
+            <button id="btn-new-tab" class="icon-btn tab-add" title="New tab (⌘N)">+</button>
+          </header>
+
+          <section class="request-pane" data-pane="request">
+            <div class="urlbar">
+              <select id="kindSelect" class="kind-select" title="Request type">
+                <option value="http">HTTP</option>
+                <option value="ws">WS</option>
+                <option value="sse">SSE</option>
+              </select>
+              <div class="method-wrap">
+                <select id="methodSelect" class="method-select" title="HTTP method">
+                  <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option>
+                  <option>DELETE</option><option>HEAD</option><option>OPTIONS</option>
+                </select>
+              </div>
+              <div class="url-wrap">
+                <span id="urlKind" class="url-kind hidden">WS</span>
+                <input id="urlInput" class="url-input" type="text" placeholder="https://api.example.com/v1/things" spellcheck="false" autocomplete="off" />
+              </div>
+              <button id="btn-send" class="send-btn">Send</button>
+              <div class="urlbar-actions">
+                <button id="btn-curl-export" class="icon-btn" title="复制为 cURL">cURL</button>
+                <button id="btn-curl-import" class="icon-btn" title="导入 cURL (⌘I)">⇩</button>
+                <button id="btn-save" class="icon-btn" title="保存请求 (⌘S)">⌘S</button>
+              </div>
+            </div>
+
+            <div class="req-subbar">
+              <div class="req-tabs" role="tablist">
+                <button class="req-tab is-active" data-reqtab="params">Params <span class="badge" id="badge-params"></span></button>
+                <button class="req-tab" data-reqtab="headers">Headers <span class="badge" id="badge-headers"></span></button>
+                <button class="req-tab" data-reqtab="body">Body <span class="badge" id="badge-body"></span></button>
+                <button class="req-tab" data-reqtab="auth">Auth <span class="badge" id="badge-auth"></span></button>
+              </div>
+              <div class="req-options">
+                <label class="chk"><input type="checkbox" id="opt-follow" checked /> follow redirects</label>
+                <label class="chk"><input type="checkbox" id="opt-insecure" /> allow insecure TLS</label>
+                <label class="chk"><input type="checkbox" id="opt-timing" checked /> timing</label>
+              </div>
+            </div>
+
+            <div class="req-panels" data-pane="req-panels">
+              <div class="panel is-active" data-panel="params">
+                <div class="table-head">
+                  <span class="col-chk"></span><span class="col-key">Key</span><span class="col-val">Value</span><span class="col-act"></span>
+                </div>
+                <div id="paramsTable" class="kv-table"></div>
+                <button class="ghost-btn" id="btn-add-param">+ 添加参数</button>
+              </div>
+
+              <div class="panel" data-panel="headers">
+                <div class="table-head">
+                  <span class="col-chk"></span><span class="col-key">Header</span><span class="col-val">Value</span><span class="col-act"></span>
+                </div>
+                <div id="headersTable" class="kv-table"></div>
+                <div class="row-btns">
+                  <button class="ghost-btn" id="btn-add-header">+ 添加 Header</button>
+                  <button class="ghost-btn" id="btn-header-preset">+ Content-Type: JSON</button>
+                </div>
+              </div>
+
+              <div class="panel" data-panel="body">
+                <div class="body-head">
+                  <div class="seg" id="bodyType">
+                    <button class="seg-btn is-active" data-bodytype="none">none</button>
+                    <button class="seg-btn" data-bodytype="json">JSON</button>
+                    <button class="seg-btn" data-bodytype="graphql">GraphQL</button>
+                    <button class="seg-btn" data-bodytype="form-urlencoded">x-www-form</button>
+                    <button class="seg-btn" data-bodytype="form-data">form-data</button>
+                    <button class="seg-btn" data-bodytype="text">raw</button>
+                    <button class="seg-btn" data-bodytype="binary">binary</button>
+                  </div>
+                  <div class="body-tools">
+                    <button class="ghost-btn" id="btn-format-json">格式化 JSON</button>
+                  </div>
+                </div>
+
+                <div class="body-view" data-bodyview="none">
+                  <p class="muted">该请求没有 body。</p>
+                </div>
+
+                <div class="body-view hidden" data-bodyview="json">
+                  <textarea id="body-json" class="code-area" spellcheck="false" placeholder='{ "hello": "world" }'></textarea>
+                </div>
+
+                <div class="body-view hidden" data-bodyview="graphql">
+                  <div class="gql-grid">
+                    <div>
+                      <div class="mini-label">Query</div>
+                      <textarea id="gql-query" class="code-area" spellcheck="false" placeholder="query { viewer { id } }"></textarea>
+                    </div>
+                    <div>
+                      <div class="mini-label">Variables (JSON)</div>
+                      <textarea id="gql-vars" class="code-area" spellcheck="false" placeholder='{ "id": 1 }'></textarea>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="body-view hidden" data-bodyview="form-urlencoded">
+                  <div class="table-head">
+                    <span class="col-chk"></span><span class="col-key">Key</span><span class="col-val">Value</span><span class="col-act"></span>
+                  </div>
+                  <div id="formUrlencodedTable" class="kv-table"></div>
+                  <button class="ghost-btn" id="btn-add-form-urlencoded">+ 添加字段</button>
+                </div>
+
+                <div class="body-view hidden" data-bodyview="form-data">
+                  <div class="table-head">
+                    <span class="col-chk"></span><span class="col-key">Key</span><span class="col-val">Value</span><span class="col-act"></span>
+                  </div>
+                  <div id="formDataTable" class="kv-table"></div>
+                  <div class="row-btns">
+                    <button class="ghost-btn" id="btn-add-form-data">+ 添加字段</button>
+                    <button class="ghost-btn" id="btn-add-file">+ 添加文件</button>
+                  </div>
+                </div>
+
+                <div class="body-view hidden" data-bodyview="text">
+                  <div class="mini-row">
+                    <input id="body-contentType" class="mini-input" placeholder="Content-Type (e.g. text/plain)" spellcheck="false" />
+                  </div>
+                  <textarea id="body-text" class="code-area" spellcheck="false" placeholder="raw request body"></textarea>
+                </div>
+
+                <div class="body-view hidden" data-bodyview="binary">
+                  <div class="binary-row">
+                    <button class="ghost-btn" id="btn-pick-binary">选择文件…</button>
+                    <span id="binary-label" class="muted">未选择文件</span>
+                  </div>
+                </div>
+              </div>
+
+              <div class="panel" data-panel="auth">
+                <div class="auth-grid">
+                  <label class="field">
+                    <span>类型</span>
+                    <select id="authType">
+                      <option value="none">无认证</option>
+                      <option value="bearer">Bearer Token</option>
+                      <option value="basic">Basic Auth</option>
+                      <option value="api-key">API Key</option>
+                    </select>
+                  </label>
+                  <div class="auth-fields" data-auth="none"><p class="muted">不发送任何认证信息。</p></div>
+                  <div class="auth-fields hidden" data-auth="bearer">
+                    <label class="field"><span>Token</span><input id="auth-token" class="mini-input" placeholder="eyJhbGciOi…" spellcheck="false" /></label>
+                  </div>
+                  <div class="auth-fields hidden" data-auth="basic">
+                    <label class="field"><span>用户名</span><input id="auth-username" class="mini-input" spellcheck="false" /></label>
+                    <label class="field"><span>密码</span><input id="auth-password" class="mini-input" type="password" spellcheck="false" /></label>
+                  </div>
+                  <div class="auth-fields hidden" data-auth="api-key">
+                    <label class="field"><span>Key</span><input id="auth-key" class="mini-input" placeholder="X-API-Key" spellcheck="false" /></label>
+                    <label class="field"><span>Value</span><input id="auth-value" class="mini-input" spellcheck="false" /></label>
+                    <label class="field"><span>添加到</span>
+                      <select id="auth-addto"><option value="header">Header</option><option value="query">Query 参数</option></select>
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <div class="splitter" id="splitter"></div>
+
+          <section class="response-pane" data-pane="response">
+            <div class="resp-head">
+              <div class="resp-meta">
+                <span id="respStatus" class="status-pill hidden"></span>
+                <span id="respTime" class="meta-chip hidden"></span>
+                <span id="respSize" class="meta-chip hidden"></span>
+                <span id="respNote" class="muted small"></span>
+              </div>
+              <div class="resp-tools">
+                <div class="resp-tabs" role="tablist">
+                  <button class="resp-tab is-active" data-resptab="pretty">Pretty</button>
+                  <button class="resp-tab" data-resptab="raw">Raw</button>
+                  <button class="resp-tab" data-resptab="headers">Headers</button>
+                  <button class="resp-tab" data-resptab="preview">Preview</button>
+                </div>
+                <button id="btn-copy-resp" class="ghost-btn" title="复制响应体">复制</button>
+                <button id="btn-clear-resp" class="ghost-btn" title="清空">清空</button>
+              </div>
+            </div>
+
+            <div class="resp-body">
+              <div id="respEmpty" class="empty">
+                <div class="empty-mark">⌁</div>
+                <h2>发一个请求</h2>
+                <p class="muted">⌘/Ctrl + Enter 发送 · ⌘/Ctrl + I 导入 cURL</p>
+              </div>
+              <div id="respPretty" class="resp-view hidden"></div>
+              <pre id="respRaw" class="resp-view code hidden"></pre>
+              <div id="respHeaders" class="resp-view hidden"></div>
+              <div id="respPreview" class="resp-view hidden"></div>
+            </div>
+          </section>
+
+          <section class="stream-pane hidden" data-pane="stream">
+            <div class="stream-head">
+              <div class="resp-meta">
+                <span id="streamStatus" class="status-pill hidden"></span>
+                <span id="streamCount" class="meta-chip hidden"></span>
+              </div>
+              <div class="resp-tools">
+                <button id="btn-stream-clear" class="ghost-btn">清空</button>
+                <button id="btn-stream-close" class="ghost-btn">断开</button>
+              </div>
+            </div>
+            <div id="streamLog" class="stream-log"></div>
+            <div class="stream-compose">
+              <input id="streamInput" class="mini-input" placeholder="要发送的消息（WS）…" spellcheck="false" />
+              <button id="btn-stream-send" class="send-btn small">发送</button>
+            </div>
+          </section>
+        </main>
+      </div>
+    </section>
+
+    <!-- ======================= ESCAPE ======================= -->
+    <section class="view tool-view" id="view-escape" data-view="escape">
+      <header class="tool-head drag-region">
+        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <h2>字符转义 / 去转义</h2>
+        <div class="tool-head-actions">
+          <select id="esc-mode" class="mini-select">
+            <option value="js">JavaScript 字符串</option>
+            <option value="json">JSON 字符串</option>
+            <option value="url">URL 编码</option>
+            <option value="html">HTML 实体</option>
+            <option value="unicode">Unicode \\uXXXX</option>
+          </select>
+          <button id="esc-do" class="btn-primary">转义 →</button>
+          <button id="esc-undo" class="btn-secondary">← 去转义</button>
+        </div>
+      </header>
+      <div class="tool-body two-pane">
+        <div class="pane">
+          <div class="pane-head">
+            <span>输入</span>
+            <span class="pane-actions">
+              <button class="ghost-btn" data-clipboard-from="esc-in">粘贴</button>
+              <button class="ghost-btn" data-clear="esc-in">清空</button>
+            </span>
+          </div>
+          <textarea id="esc-in" class="code-area fill" spellcheck="false" placeholder="在这里输入要转义的内容…"></textarea>
+        </div>
+        <div class="pane">
+          <div class="pane-head">
+            <span>输出</span>
+            <span class="pane-actions">
+              <button class="ghost-btn" data-copy-from="esc-out">复制</button>
+              <button class="ghost-btn" id="esc-swap">⇄ 交换</button>
+            </span>
+          </div>
+          <textarea id="esc-out" class="code-area fill" spellcheck="false" readonly placeholder="结果显示在这里"></textarea>
+        </div>
+      </div>
+      <div class="tool-status"><span id="esc-note" class="muted small">双向转换，输入后即时出结果</span></div>
+    </section>
+
+    <!-- ======================= JSON ======================= -->
+    <section class="view tool-view" id="view-json" data-view="json">
+      <header class="tool-head drag-region">
+        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <h2>JSON 格式化</h2>
+        <div class="tool-head-actions">
+          <button id="json-format2" class="btn-secondary">格式化 2 空格</button>
+          <button id="json-format4" class="btn-secondary">4 空格</button>
+          <button id="json-minify" class="btn-secondary">压缩</button>
+          <button id="json-sort" class="btn-secondary">键排序</button>
+          <button id="json-validate" class="btn-primary">校验</button>
+        </div>
+      </header>
+      <div class="tool-body two-pane">
+        <div class="pane">
+          <div class="pane-head">
+            <span>输入 JSON</span>
+            <span class="pane-actions"><button class="ghost-btn" data-clear="json-in">清空</button></span>
+          </div>
+          <textarea id="json-in" class="code-area fill" spellcheck="false" placeholder='{"hello":"mozi"}'></textarea>
+        </div>
+        <div class="pane">
+          <div class="pane-head">
+            <span>结果</span>
+            <span class="pane-actions">
+              <button class="ghost-btn" data-copy-from="json-out">复制</button>
+              <button class="ghost-btn" id="json-swap">⇄ 结果回填</button>
+            </span>
+          </div>
+          <textarea id="json-out" class="code-area fill" spellcheck="false" readonly placeholder="格式化后的结果"></textarea>
+        </div>
+      </div>
+      <div class="tool-status">
+        <span id="json-status" class="muted small">等待输入…</span>
+        <span id="json-stats" class="muted small"></span>
+      </div>
+    </section>
+
+    <!-- ======================= BASE64 (text + images) ======================= -->
+    <section class="view tool-view" id="view-base64" data-view="base64">
+      <header class="tool-head drag-region">
+        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <h2>Base64 工具箱</h2>
+        <div class="tool-head-actions">
+          <div class="seg" id="b64-tabs">
+            <button class="seg-btn is-active" data-b64tab="text">文本加解密</button>
+            <button class="seg-btn" data-b64tab="to-base64">图片 → Base64</button>
+            <button class="seg-btn" data-b64tab="to-image">Base64 → 图片</button>
+          </div>
+        </div>
+      </header>
+
+      <div class="tool-body b64-body">
+        <div class="b64-panel" data-b64panel="text">
+          <div class="panel-toolbar">
+            <select id="b64-mode" class="mini-select">
+              <option value="encode">文本 → Base64</option>
+              <option value="decode">Base64 → 文本</option>
+            </select>
+            <label class="chk"><input type="checkbox" id="b64-urlsafe" /> URL-safe</label>
+            <button id="b64-run" class="btn-primary">转换</button>
+            <button id="b64-swap" class="btn-secondary">⇄ 交换</button>
+            <span id="b64-stats" class="muted small"></span>
+          </div>
+          <div class="two-pane">
+            <div class="pane">
+              <div class="pane-head">
+                <span id="b64-in-label">明文</span>
+                <span class="pane-actions"><button class="ghost-btn" data-clear="b64-in">清空</button></span>
+              </div>
+              <textarea id="b64-in" class="code-area fill" spellcheck="false" placeholder="输入文本或 Base64…"></textarea>
+            </div>
+            <div class="pane">
+              <div class="pane-head">
+                <span id="b64-out-label">Base64</span>
+                <span class="pane-actions"><button class="ghost-btn" data-copy-from="b64-out">复制</button></span>
+              </div>
+              <textarea id="b64-out" class="code-area fill" spellcheck="false" readonly placeholder="结果"></textarea>
+            </div>
+          </div>
+          <div class="tool-status"><span id="b64-note" class="muted small">支持 UTF-8 中文，自动处理换行与填充</span></div>
+        </div>
+
+        <div class="b64-panel hidden" data-b64panel="to-base64">
+          <div class="panel-toolbar">
+            <button class="btn-primary" id="img2-pick">选择图片…</button>
+            <button class="btn-secondary" id="img2-copy-base64">复制 Base64</button>
+            <button class="btn-secondary" id="img2-copy-dataurl">复制 Data URL</button>
+            <span id="img2-note" class="muted small">支持 PNG / JPG / GIF / WebP / SVG / ICO</span>
+          </div>
+          <div class="two-pane">
+            <div class="pane">
+              <div class="pane-head"><span>预览</span><span class="muted small">选择本地图片后显示</span></div>
+              <div id="img2-preview" class="img-preview"><span class="muted">还没有选择图片</span></div>
+            </div>
+            <div class="pane">
+              <div class="pane-head"><span>Base64</span><span class="muted small">可直接复制</span></div>
+              <textarea id="img2-out" class="code-area fill" spellcheck="false" readonly placeholder="转换结果"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="b64-panel hidden" data-b64panel="to-image">
+          <div class="panel-toolbar">
+            <button class="btn-primary" id="img-render">渲染</button>
+            <button class="btn-secondary" id="img-save">保存图片</button>
+            <button class="ghost-btn" data-clear="img-in">清空</button>
+            <span id="img-note" class="muted small">粘贴 Base64 或 Data URL，自动预览</span>
+          </div>
+          <div class="two-pane">
+            <div class="pane">
+              <div class="pane-head"><span>Base64 或 Data URL</span><span class="muted small">支持纯 Base64</span></div>
+              <textarea id="img-in" class="code-area fill" spellcheck="false" placeholder="data:image/png;base64,iVBORw0KGgo…"></textarea>
+            </div>
+            <div class="pane">
+              <div class="pane-head"><span>预览</span><span class="muted small">含尺寸与体积</span></div>
+              <div id="img-preview" class="img-preview"><span class="muted">还没有可预览的图片</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= MARKDOWN ======================= -->
+    <section class="view tool-view" id="view-markdown" data-view="markdown">
+      <header class="tool-head drag-region">
+        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <h2>Markdown 编辑器</h2>
+        <div class="tool-head-actions">
+          <button class="btn-secondary" id="md-image">插入图片</button>
+          <button class="btn-secondary" id="md-sample">插入示例</button>
+          <button class="btn-secondary" id="md-copy-html">复制 HTML</button>
+          <button class="btn-secondary" id="md-export">导出 HTML</button>
+          <button class="btn-secondary" id="md-clear">清空</button>
+        </div>
+      </header>
+      <div class="tool-body md-body">
+        <div class="pane">
+          <div class="pane-head"><span>Markdown</span><span id="md-stats" class="muted small"></span></div>
+          <textarea id="md-in" class="code-area fill" spellcheck="false" placeholder="# 标题&#10;&#10;开始写 Markdown…"></textarea>
+        </div>
+        <div class="pane">
+          <div class="pane-head"><span>预览</span><span class="muted small">支持图片与 ```mermaid 流程图</span></div>
+          <div id="md-preview" class="md-preview"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= TIMESTAMP ======================= -->
+    <section class="view tool-view" id="view-timestamp" data-view="timestamp">
+      <header class="tool-head drag-region">
+        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <h2>时间戳转换</h2>
+        <div class="tool-head-actions">
+          <button class="btn-primary" id="ts-now">现在</button>
+          <span id="ts-clock" class="meta-chip"></span>
+        </div>
+      </header>
+      <div class="tool-body ts-body">
+        <div class="ts-card">
+          <div class="mini-label">Unix 时间戳（秒 / 毫秒自动识别）</div>
+          <input id="ts-input" class="mini-input" placeholder="1793955829 或 1793955829000" spellcheck="false" />
+          <div class="ts-out">
+            <div class="ts-row"><span class="ts-key">本地</span><span id="ts-local" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-local" title="复制">⧉</button></div>
+            <div class="ts-row"><span class="ts-key">UTC</span><span id="ts-utc" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-utc" title="复制">⧉</button></div>
+            <div class="ts-row"><span class="ts-key">ISO</span><span id="ts-iso" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-iso" title="复制">⧉</button></div>
+            <div class="ts-row"><span class="ts-key">相对</span><span id="ts-rel" class="ts-val muted"></span></div>
+          </div>
+        </div>
+
+        <div class="ts-card">
+          <div class="mini-label">日期 → 时间戳</div>
+          <input id="ts-date" class="mini-input" type="datetime-local" step="1" />
+          <div class="ts-out">
+            <div class="ts-row"><span class="ts-key">秒</span><span id="ts-sec" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-sec" title="复制">⧉</button></div>
+            <div class="ts-row"><span class="ts-key">毫秒</span><span id="ts-ms" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-ms" title="复制">⧉</button></div>
+          </div>
+        </div>
+
+        <div class="ts-card">
+          <div class="mini-label">常用时区对照</div>
+          <div id="ts-zones" class="ts-zones"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= JWT ======================= -->
+    <section class="view tool-view" id="view-jwt" data-view="jwt">
+      <header class="tool-head drag-region">
+        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <h2>JWT 解析</h2>
+        <div class="tool-head-actions">
+          <button class="btn-secondary" data-clear="jwt-in">清空</button>
+          <button class="btn-secondary" id="jwt-sample">插入示例</button>
+        </div>
+      </header>
+      <div class="tool-body jwt-body">
+        <div class="jwt-left">
+          <div class="pane">
+            <div class="pane-head"><span>Token</span><span id="jwt-alg" class="muted small"></span></div>
+            <textarea id="jwt-in" class="code-area fill" spellcheck="false" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…"></textarea>
+          </div>
+          <div class="pane jwt-verify">
+            <div class="pane-head"><span>HS256 验签（可选）</span></div>
+            <div class="jwt-verify-row">
+              <input id="jwt-secret" class="mini-input" type="text" placeholder="输入密钥后点验证" spellcheck="false" />
+              <button class="btn-primary" id="jwt-verify">验证</button>
+            </div>
+            <div id="jwt-verify-out" class="muted small"></div>
+          </div>
+        </div>
+        <div class="jwt-right">
+          <div class="pane">
+            <div class="pane-head"><span>Header</span><button class="ghost-btn" data-copy-from-el="jwt-header">复制</button></div>
+            <pre id="jwt-header" class="code-area fill code jwt-json"></pre>
+          </div>
+          <div class="pane">
+            <div class="pane-head"><span>Payload</span><button class="ghost-btn" data-copy-from-el="jwt-payload">复制</button></div>
+            <pre id="jwt-payload" class="code-area fill code jwt-json"></pre>
+          </div>
+        </div>
+      </div>
+      <div class="tool-status"><span id="jwt-note" class="muted small">粘贴 token 自动解析；数据只在本机处理</span></div>
+    </section>
+
+    <!-- ======================= HASH ======================= -->
+    <section class="view tool-view" id="view-hash" data-view="hash">
+      <header class="tool-head drag-region">
+        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <h2>Hash 摘要</h2>
+        <div class="tool-head-actions">
+          <div class="seg" id="hash-tabs">
+            <button class="seg-btn is-active" data-hashtab="text">文本</button>
+            <button class="seg-btn" data-hashtab="file">文件</button>
+          </div>
+        </div>
+      </header>
+      <div class="tool-body hash-body">
+        <div class="hash-panel" data-hashpanel="text">
+          <div class="pane">
+            <div class="pane-head">
+              <span>输入文本</span>
+              <span class="pane-actions">
+                <select id="hash-enc" class="mini-select"><option value="utf8">UTF-8</option><option value="hex">Hex</option><option value="base64">Base64</option></select>
+                <button class="ghost-btn" data-clear="hash-in">清空</button>
+              </span>
+            </div>
+            <textarea id="hash-in" class="code-area fill" spellcheck="false" placeholder="输入要计算摘要的文本…"></textarea>
+          </div>
+          <div class="pane">
+            <div class="pane-head"><span>结果</span><span class="pane-actions"><button class="ghost-btn" id="hash-copy-all">复制全部</button></span></div>
+            <div id="hash-out" class="hash-out"></div>
+          </div>
+        </div>
+        <div class="hash-panel hidden" data-hashpanel="file">
+          <div class="panel-toolbar">
+            <button class="btn-primary" id="hash-pick">选择文件…</button>
+            <span class="muted small">MD5 / SHA-1 / SHA-256 / SHA-512 一次算完</span>
+          </div>
+          <div id="hash-file-out" class="hash-out"><span class="muted">还没有计算过文件</span></div>
+        </div>
+      </div>
+      <div class="tool-status"><span id="hash-note" class="muted small">本地计算，不发送任何数据</span></div>
+    </section>
+
+    <!-- ======================= GENERATOR ======================= -->
+    <section class="view tool-view" id="view-generator" data-view="generator">
+      <header class="tool-head drag-region">
+        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <h2>UUID / 密码生成</h2>
+        <div class="tool-head-actions">
+          <div class="seg" id="gen-tabs">
+            <button class="seg-btn is-active" data-gentab="uuid">UUID</button>
+            <button class="seg-btn" data-gentab="password">密码</button>
+          </div>
+        </div>
+      </header>
+      <div class="tool-body gen-body">
+        <div class="gen-panel" data-genpanel="uuid">
+          <div class="panel-toolbar">
+            <select id="uuid-version" class="mini-select">
+              <option value="v4">UUID v4（随机）</option>
+              <option value="v7">UUID v7（时间有序）</option>
+            </select>
+            <label class="field-inline"><span>数量</span><input id="uuid-count" class="mini-input tiny" type="number" min="1" max="500" value="10" /></label>
+            <label class="chk"><input type="checkbox" id="uuid-upper" /> 大写</label>
+            <label class="chk"><input type="checkbox" id="uuid-braces" /> 花括号</label>
+            <button class="btn-primary" id="uuid-gen">生成</button>
+            <button class="btn-secondary" id="uuid-copy">复制全部</button>
+          </div>
+          <textarea id="uuid-out" class="code-area fill" spellcheck="false" readonly></textarea>
+        </div>
+        <div class="gen-panel hidden" data-genpanel="password">
+          <div class="panel-toolbar">
+            <label class="field-inline"><span>长度</span><input id="pw-len" class="mini-input tiny" type="number" min="4" max="128" value="20" /></label>
+            <label class="field-inline"><span>数量</span><input id="pw-count" class="mini-input tiny" type="number" min="1" max="100" value="5" /></label>
+            <label class="chk"><input type="checkbox" id="pw-upper" checked /> A-Z</label>
+            <label class="chk"><input type="checkbox" id="pw-lower" checked /> a-z</label>
+            <label class="chk"><input type="checkbox" id="pw-digit" checked /> 0-9</label>
+            <label class="chk"><input type="checkbox" id="pw-symbol" checked /> !@#$…</label>
+            <label class="chk"><input type="checkbox" id="pw-ambiguous" /> 含易混淆字符</label>
+            <button class="btn-primary" id="pw-gen">生成</button>
+            <button class="btn-secondary" id="pw-copy">复制全部</button>
+          </div>
+          <div class="two-pane">
+            <textarea id="pw-out" class="code-area fill" spellcheck="false" readonly></textarea>
+            <div class="pane">
+              <div class="pane-head"><span>强度估算</span></div>
+              <div id="pw-strength" class="pw-strength"><span class="muted">生成后显示</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="tool-status"><span id="gen-note" class="muted small">使用 Web Crypto 安全随机源</span></div>
+    </section>
+
+    <!-- ======================= REGEX ======================= -->
+    <section class="view tool-view" id="view-regex" data-view="regex">
+      <header class="tool-head drag-region">
+        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <h2>正则测试</h2>
+        <div class="tool-head-actions">
+          <div class="rx-flags" id="rx-flags">
+            <label class="chk"><input type="checkbox" data-flag="g" checked />g</label>
+            <label class="chk"><input type="checkbox" data-flag="i" />i</label>
+            <label class="chk"><input type="checkbox" data-flag="m" />m</label>
+            <label class="chk"><input type="checkbox" data-flag="s" />s</label>
+            <label class="chk"><input type="checkbox" data-flag="u" />u</label>
+          </div>
+        </div>
+      </header>
+      <div class="tool-body rx-body">
+        <div class="rx-pattern">
+          <span class="rx-delim">/</span>
+          <input id="rx-in" class="mini-input rx-input" placeholder="\d{3,4}-\d{4}" spellcheck="false" />
+          <span class="rx-delim">/</span>
+          <span id="rx-flags-label" class="muted small">g</span>
+        </div>
+        <div class="two-pane">
+          <div class="pane">
+            <div class="pane-head"><span>测试文本</span><span class="pane-actions"><button class="ghost-btn" data-clear="rx-text">清空</button></span></div>
+            <div id="rx-highlight" class="rx-highlight code"></div>
+            <textarea id="rx-text" class="code-area fill" spellcheck="false" placeholder="输入要匹配的文本…"></textarea>
+          </div>
+          <div class="pane">
+            <div class="pane-head"><span>匹配结果</span><span id="rx-count" class="muted small"></span></div>
+            <div id="rx-out" class="rx-out"><span class="muted">输入正则后显示匹配</span></div>
+          </div>
+        </div>
+        <div class="rx-replace">
+          <div class="mini-label">替换预览</div>
+          <div class="rx-replace-row">
+            <input id="rx-replace" class="mini-input" placeholder="替换内容，可用 $1 引用分组" spellcheck="false" />
+            <button class="btn-secondary" id="rx-apply">应用替换</button>
+          </div>
+          <pre id="rx-replaced" class="code-area code rx-replaced" hidden></pre>
+        </div>
+      </div>
+      <div class="tool-status">
+        <span id="rx-note" class="muted small">常用：</span>
+        <span class="rx-presets" id="rx-presets"></span>
+      </div>
+    </section>
+
+    <!-- ======================= CODE GEN ======================= -->
+    <section class="view tool-view" id="view-codegen" data-view="codegen">
+      <header class="tool-head drag-region">
+        <button class="back-btn" data-back title="返回工具箱 (Esc)">← 工具箱</button>
+        <h2>cURL 转代码</h2>
+        <div class="tool-head-actions">
+          <select id="cg-lang" class="mini-select"></select>
+          <button class="btn-primary" id="cg-run">生成</button>
+          <button class="btn-secondary" id="cg-copy">复制</button>
+          <button class="btn-secondary" id="cg-save">保存文件</button>
+        </div>
+      </header>
+      <div class="tool-body two-pane">
+        <div class="pane">
+          <div class="pane-head">
+            <span>cURL 命令</span>
+            <span class="pane-actions">
+              <button class="ghost-btn" id="cg-from-current">用当前请求</button>
+              <button class="ghost-btn" data-clear="cg-in">清空</button>
+            </span>
+          </div>
+          <textarea id="cg-in" class="code-area fill" spellcheck="false" placeholder="curl 'https://api.example.com/v1/items' -H 'Authorization: Bearer …'"></textarea>
+        </div>
+        <div class="pane">
+          <div class="pane-head"><span>生成代码</span><span id="cg-note" class="muted small"></span></div>
+          <pre id="cg-out" class="code-area fill code" spellcheck="false"></pre>
+        </div>
+      </div>
+      <div class="tool-status"><span id="cg-status" class="muted small">粘贴 cURL，或从请求工具导入当前请求</span></div>
+    </section>
+  </div>
+
+  <div id="modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3 id="modalTitle">对话框</h3>
+        <button id="modalClose" class="icon-btn">✕</button>
+      </div>
+      <div id="modalBody" class="modal-body"></div>
+      <div id="modalFoot" class="modal-foot"></div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script>
+    window.__errors = []
+    window.addEventListener('error', (e) => window.__errors.push(`${e.message} @ ${e.filename}:${e.lineno}`))
+    window.addEventListener('unhandledrejection', (e) => window.__errors.push(`promise: ${e.reason && e.reason.message ? e.reason.message : e.reason}`))
+  </script>
+  <script src="lib/json-tree.js"></script>
+  <script src="lib/curl.js"></script>
+  <script src="lib/codec.js"></script>
+  <script src="lib/jwt.js"></script>
+  <script src="lib/codegen.js"></script>
+  <script src="lib/markdown.js"></script>
+  <script src="app.js"></script>
+  <script src="tools.js"></script>
+  <script src="tools2.js"></script>
+</body>
+</html>
