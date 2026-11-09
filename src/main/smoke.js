@@ -9,6 +9,14 @@ const TINY_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8
 
 function startServers () {
   const jsonServer = http.createServer((req, res) => {
+    if (req.url.startsWith('/echo-headers')) {
+      res.writeHead(200, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({
+        authorization: req.headers.authorization || null,
+        xTrace: req.headers['x-trace'] || null
+      }))
+      return
+    }
     if (req.url.startsWith('/json')) {
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({ ok: true, items: [{ id: 1, name: 'alpha' }, { id: 2, name: 'beta' }], meta: { total: 2 } }))
@@ -154,6 +162,34 @@ async function runSmoke (win, app) {
     check('http size', /B|KB/.test(httpResult.size), httpResult.size)
     check('json tree rendered', httpResult.tree === 1)
     check('json keys visible', httpResult.keys.includes('ok') && httpResult.keys.includes('items'), httpResult.keys.join(','))
+
+    // Headers (including the Auth tab) must actually reach the server.
+    const headerResult = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const setValue = (el, v) => { el.value = v; el.dispatchEvent(new Event('input', { bubbles: true })) }
+      document.querySelector('#btn-add-header').click()
+      await wait(80)
+      const rows = document.querySelectorAll('#headersTable .kv-row')
+      const last = rows[rows.length - 1]
+      const key = last.querySelectorAll('input[type=text]')[0]
+      const val = last.querySelectorAll('input[type=text]')[1]
+      setValue(key, 'X-Trace'); setValue(val, 'pair-form-check')
+      const authType = document.querySelector('#authType')
+      authType.value = 'bearer'; authType.dispatchEvent(new Event('change', { bubbles: true }))
+      setValue(document.querySelector('#auth-token'), 'sk-smoke-token-123')
+      setValue(document.querySelector('#urlInput'), '${servers.base}/echo-headers')
+      document.querySelector('#btn-send').click()
+      for (let i = 0; i < 100; i++) {
+        await wait(50)
+        const pill = document.querySelector('#respStatus')
+        if (pill && !pill.classList.contains('hidden') && pill.textContent.startsWith('200')) break
+      }
+      await wait(150)
+      return document.querySelector('#respRaw').textContent
+    })()`))
+    check('auth bearer header reaches the server', headerResult.authorization === 'Bearer sk-smoke-token-123', JSON.stringify(headerResult.authorization))
+    check('custom header reaches the server', headerResult.xTrace === 'pair-form-check', JSON.stringify(headerResult.xTrace))
+
     await capture(shot('-http'))
 
     // kind switch
