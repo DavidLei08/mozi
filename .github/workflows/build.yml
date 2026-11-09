@@ -66,10 +66,11 @@ jobs:
       - run: npm ci
       # npm 11 blocks install scripts by default; electronDist needs node_modules/electron/dist.
       - run: node node_modules/electron/install.js
+      # No GH_TOKEN here: electron-builder would publish its own copy of every
+      # artifact and duplicate what the release job uploads below.
       - run: npm run ${{ matrix.script }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: actions/upload-artifact@v4
         with:
           name: mozi-${{ matrix.os }}

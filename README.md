@@ -42,6 +42,14 @@
 
 ![时间戳转换](.github/screenshot-timestamp.png)
 
+## 布局可拖拽
+
+所有分栏都能用鼠标拖动调整，双击分隔条恢复默认，尺寸按分栏记忆（重启后保持）：
+
+- **左右**：侧栏宽度；转义 / JSON / Base64（文本与两个图片面板）/ JWT / Hash / 密码 / 正则 / cURL 转代码 / Markdown 的双栏
+- **上下**：请求工具里请求区与响应区的高度
+- 分隔条获得焦点后可用方向键微调，`Home` / `End` 到边界
+
 ## 设计取向
 
 - **本地优先**：所有数据只写入本机 `userData/data.json`，不发任何统计请求
@@ -77,10 +85,10 @@ npm test       # 单元测试：HTTP / WS / SSE / cURL / codec / jwt / codegen /
 npm run smoke  # 端到端：起本地服务，走完 6 个工具的 50 项断言并截图
 ```
 
-`npm run smoke` 覆盖 **117 项断言**：首页分组与 11 个工具卡片、HTTP 请求与 JSON 树、WS 收发、
+`npm run smoke` 覆盖 **127 项断言**：首页分组与 11 个工具卡片、HTTP 请求与 JSON 树、WS 收发、
 SSE 流（GET 与 POST body）、集合保存落盘、cURL 导入导出、转义 / JSON / Base64（文本 + 图片三标签）/
 Markdown（含 Mermaid 与图片）、时间戳、Hash（含已知向量校验）、UUID/密码、正则、JWT、代码生成，
-以及返回工具箱、首页搜索、最近使用、⌘1…⌘9 直达。
+以及返回工具箱、首页搜索、最近使用、⌘1…⌘9 直达、分栏拖拽 / 双击重置 / 重启后恢复。
 
 ```bash
 npm run smoke -- --no-sandbox --disable-gpu   # 沙箱 / CI 环境
@@ -126,7 +134,7 @@ src/
     app.js       请求工具：状态、渲染、交互
     tools.js     转义 / JSON / Base64 / Markdown 工具逻辑
     tools2.js    时间戳 / Hash / UUID / 正则 / JWT / 代码生成逻辑
-    lib/         json-tree、curl、codec、jwt、codegen、markdown、mermaid.min.js（按需加载）
+    lib/         json-tree、curl、codec、jwt、codegen、split、markdown、mermaid.min.js（按需加载）
 test/            node:test 单元测试
 ```
 
