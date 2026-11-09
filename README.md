@@ -12,7 +12,7 @@
 
 | 工具 | 能力 |
 |---|---|
-| **请求工具** | HTTP 全方法、GraphQL、表单/文件上传、WebSocket、SSE（任意方法，含 POST body）；集合与历史、环境变量、cURL 导入导出、认证助手、响应树 |
+| **请求工具** | HTTP 全方法、GraphQL、表单/文件上传、WebSocket、SSE（任意方法，含 POST body）；集合与历史、环境变量、**Cookie 管理**、cURL 导入导出、认证助手、响应树 |
 | **JWT 解析** | 拆 Header / Payload（UTF-8 安全）、`exp`/`nbf`/`iat` 时间状态与倒计时、HS256 验签（常数时间比较） |
 | **正则测试** | 实时匹配计数、分组与命名捕获、替换预览、正则错误提示、8 个常用正则收藏、g/im/s/u 开关 |
 | **cURL 转代码** | cURL 一键生成 Python(requests) / JS(fetch) / Node(axios) / Go(net/http) / Java(OkHttp) 代码，可直接用请求工具当前请求或粘贴 cURL |
@@ -42,6 +42,20 @@
 
 ![时间戳转换](.github/screenshot-timestamp.png)
 
+## Cookie 管理
+
+请求工具新增 **Cookies** 标签页：
+
+- 响应里的 `Set-Cookie` 自动存入 Cookie Jar（Domain / Path / Secure / HttpOnly / Expires / Max-Age 全解析）
+- 下一次请求按**域名后缀 + 路径边界**自动匹配附加；手动写了 `Cookie` 头则不覆盖
+- 每条可勾选启用 / 停用、改名改值、删除；支持手动添加与一键清空
+- Jar 随 data.json 持久化，启动时自动清理过期项
+
+## 保存语义
+
+- 点 **「保存」**（或 `⌘S`）才会把请求写入集合并命名——编辑过程中不会自动改集合
+- 当前所有标签页、集合、历史、Cookie、环境等**工作状态**始终自动持久化到本地文件，重启后原样恢复
+
 ## 主题
 
 首页右上角切换 **浅色 / 跟随系统 / 深色**（默认跟随系统），选择会持久化，
@@ -56,6 +70,7 @@ Markdown 编辑器工具栏的「打开 .md 文件…」直接加载本机文件
 所有分栏都能用鼠标拖动调整，双击分隔条恢复默认，尺寸按分栏记忆（重启后保持）：
 
 - **左右**：侧栏宽度；转义 / JSON / Base64（文本与两个图片面板）/ JWT / Hash / 密码 / 正则 / cURL 转代码 / Markdown 的双栏
+- 工具箱首页：头部与搜索固定，只有工具列表滚动
 - **上下**：请求工具里请求区与响应区的高度
 - 分隔条获得焦点后可用方向键微调，`Home` / `End` 到边界
 
@@ -94,11 +109,12 @@ npm test       # 单元测试：HTTP / WS / SSE / cURL / codec / jwt / codegen /
 npm run smoke  # 端到端：起本地服务，走完 6 个工具的 50 项断言并截图
 ```
 
-`npm run smoke` 覆盖 **134 项断言**：首页分组与 11 个工具卡片、HTTP 请求与 JSON 树、WS 收发、
+`npm run smoke` 覆盖 **142 项断言**：首页分组与 11 个工具卡片、HTTP 请求与 JSON 树、WS 收发、
 SSE 流（GET 与 POST body）、集合保存落盘、cURL 导入导出、转义 / JSON / Base64（文本 + 图片三标签）/
 Markdown（含 Mermaid 与图片）、时间戳、Hash（含已知向量校验）、UUID/密码、正则、JWT、代码生成，
 以及返回工具箱（所有工具统一为 M 图标）、首页搜索、最近使用、⌘1…⌘9 直达、
-分栏拖拽 / 双击重置 / 重启后恢复、主题切换、Markdown 打开本地文件。
+分栏拖拽 / 双击重置 / 重启后恢复、主题切换、Markdown 打开本地文件、
+Cookie 自动收集与回发（grant → jar → whoami 往返）。
 
 ```bash
 npm run smoke -- --no-sandbox --disable-gpu   # 沙箱 / CI 环境
