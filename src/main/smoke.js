@@ -490,6 +490,33 @@ async function runSmoke (win, app) {
     check('split restores after reload', Math.abs(restored.sidebar - redrag.width) < 4, `${redrag.width} -> ${restored.sidebar}`)
     check('vertical split restores after reload', Math.abs(restored.request - verticalRestoredTarget) < 12, `${verticalRestoredTarget} -> ${restored.request}`)
 
+    // the body editor must grow/shrink with the request pane, not stay fixed
+    const bodyFollow = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const h = (sel) => Math.round(document.querySelector(sel).getBoundingClientRect().height)
+      document.querySelector('.req-tab[data-reqtab="body"]').click()
+      document.querySelector('.seg-btn[data-bodytype="json"]').click()
+      await wait(150)
+      const vbar = document.querySelector('#splitter')
+      const opts = (x, y) => ({ bubbles: true, cancelable: true, pointerId: 1, clientX: x, clientY: y, button: 0 })
+      const r0 = vbar.getBoundingClientRect()
+      vbar.dispatchEvent(new PointerEvent('pointerdown', opts(r0.left + 20, r0.top + 2)))
+      window.dispatchEvent(new PointerEvent('pointermove', opts(r0.left + 20, r0.top + 140)))
+      window.dispatchEvent(new PointerEvent('pointerup', opts(r0.left + 20, r0.top + 140)))
+      await wait(150)
+      const paneSmall = h('.request-pane')
+      const editorSmall = h('#body-json')
+      const r1 = vbar.getBoundingClientRect()
+      vbar.dispatchEvent(new PointerEvent('pointerdown', opts(r1.left + 20, r1.top + 2)))
+      window.dispatchEvent(new PointerEvent('pointermove', opts(r1.left + 20, r1.top + 420)))
+      window.dispatchEvent(new PointerEvent('pointerup', opts(r1.left + 20, r1.top + 420)))
+      await wait(150)
+      const paneBig = h('.request-pane')
+      const editorBig = h('#body-json')
+      return JSON.stringify({ paneSmall, editorSmall, paneBig, editorBig })
+    })()`))
+    check('body editor follows the vertical split', bodyFollow.paneBig > bodyFollow.paneSmall + 150 && bodyFollow.editorBig > bodyFollow.editorSmall + 100, JSON.stringify(bodyFollow))
+
     // ============ COOKIES ============
     const cookieFlow = JSON.parse(await step(`(async () => {
       const wait = (ms) => new Promise(r => setTimeout(r, ms))
