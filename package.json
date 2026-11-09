@@ -81,7 +81,7 @@
       ]
     },
     "electronDist": "node_modules/electron/dist",
-    "publish": "never"
+    "publish": null
   },
   "homepage": "https://github.com/DavidLei08/mozi#readme",
   "repository": {
