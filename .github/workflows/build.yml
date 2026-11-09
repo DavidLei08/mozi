@@ -35,8 +35,18 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      # npm 11 blocks install scripts by default; fetch the Electron binary explicitly.
-      - run: node node_modules/electron/install.js
+      # npm 11 blocks install scripts by default; fetch the Electron binary
+      # explicitly, with retries: GitHub's release-asset endpoint intermittently
+      # answers 504, which used to fail the whole run.
+      - name: Install Electron binary
+        shell: bash
+        run: |
+          for i in 1 2 3; do
+            node node_modules/electron/install.js && break
+            [ "$i" = 3 ] && exit 1
+            echo "electron install failed (attempt $i); retrying in 30s"
+            sleep 30
+          done
       - run: npm run smoke -- --no-sandbox --disable-gpu
         env:
           MOZI_SMOKE_OUT: ${{ runner.temp }}/mozi-smoke.png
@@ -64,13 +74,33 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      # npm 11 blocks install scripts by default; electronDist needs node_modules/electron/dist.
-      - run: node node_modules/electron/install.js
+      # npm 11 blocks install scripts by default; electronDist needs
+      # node_modules/electron/dist. Retry: GitHub's release-asset endpoint
+      # intermittently answers 504.
+      - name: Install Electron binary
+        shell: bash
+        run: |
+          for i in 1 2 3; do
+            node node_modules/electron/install.js && break
+            [ "$i" = 3 ] && exit 1
+            echo "electron install failed (attempt $i); retrying in 30s"
+            sleep 30
+          done
       # No GH_TOKEN here: electron-builder would publish its own copy of every
       # artifact and duplicate what the release job uploads below.
-      - run: npm run ${{ matrix.script }}
+      # Retry the whole packaging step: it downloads Electron/NSIS assets from
+      # GitHub, which intermittently 504s.
+      - name: Package (${{ matrix.script }})
+        shell: bash
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          for i in 1 2 3; do
+            npm run ${{ matrix.script }} && break
+            [ "$i" = 3 ] && exit 1
+            echo "packaging failed (attempt $i); retrying in 30s"
+            sleep 30
+          done
       - uses: actions/upload-artifact@v4
         with:
           name: mozi-${{ matrix.os }}
