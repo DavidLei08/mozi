@@ -73,7 +73,8 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "perMachine": false
+      "perMachine": false,
+      "artifactName": "${productName}-Setup-${version}.${ext}"
     },
     "linux": {
       "target": [
@@ -81,7 +82,10 @@
       ]
     },
     "electronDist": "node_modules/electron/dist",
-    "publish": null
+    "publish": null,
+    "portable": {
+      "artifactName": "${productName}-${version}.${ext}"
+    }
   },
   "homepage": "https://github.com/DavidLei08/mozi#readme",
   "repository": {
