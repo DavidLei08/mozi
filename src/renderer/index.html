@@ -33,7 +33,7 @@
 
     <!-- ======================= HTTP TOOL ======================= -->
     <section class="view" id="view-http" data-view="http">
-      <div class="app">
+      <div class="app" data-split="x" data-split-unit="px" data-split-def="292" data-split-min="200" data-split-reserve="620" data-split-key="http.sidebar">
         <aside class="sidebar" data-pane="sidebar">
           <div class="sidebar-head">
             <div class="brand">
@@ -235,7 +235,7 @@
             </div>
           </section>
 
-          <div class="splitter" id="splitter"></div>
+          <div class="splitter" id="splitter" data-legacy-splitter="1"></div>
 
           <section class="response-pane" data-pane="response">
             <div class="resp-head">
@@ -308,7 +308,7 @@
           <button id="esc-undo" class="btn-secondary">← 去转义</button>
         </div>
       </header>
-      <div class="tool-body two-pane">
+      <div class="tool-body two-pane" data-split="x" data-split-key="tool.escape">
         <div class="pane">
           <div class="pane-head">
             <span>输入</span>
@@ -346,7 +346,7 @@
           <button id="json-validate" class="btn-primary">校验</button>
         </div>
       </header>
-      <div class="tool-body two-pane">
+      <div class="tool-body two-pane" data-split="x" data-split-key="tool.json">
         <div class="pane">
           <div class="pane-head">
             <span>输入 JSON</span>
@@ -397,7 +397,7 @@
             <button id="b64-swap" class="btn-secondary">⇄ 交换</button>
             <span id="b64-stats" class="muted small"></span>
           </div>
-          <div class="two-pane">
+          <div class="two-pane" data-split="x" data-split-key="tool.b64.text">
             <div class="pane">
               <div class="pane-head">
                 <span id="b64-in-label">明文</span>
@@ -423,7 +423,7 @@
             <button class="btn-secondary" id="img2-copy-dataurl">复制 Data URL</button>
             <span id="img2-note" class="muted small">支持 PNG / JPG / GIF / WebP / SVG / ICO</span>
           </div>
-          <div class="two-pane">
+          <div class="two-pane" data-split="x" data-split-key="tool.img.toBase64">
             <div class="pane">
               <div class="pane-head"><span>预览</span><span class="muted small">选择本地图片后显示</span></div>
               <div id="img2-preview" class="img-preview"><span class="muted">还没有选择图片</span></div>
@@ -442,7 +442,7 @@
             <button class="ghost-btn" data-clear="img-in">清空</button>
             <span id="img-note" class="muted small">粘贴 Base64 或 Data URL，自动预览</span>
           </div>
-          <div class="two-pane">
+          <div class="two-pane" data-split="x" data-split-key="tool.img.toImage">
             <div class="pane">
               <div class="pane-head"><span>Base64 或 Data URL</span><span class="muted small">支持纯 Base64</span></div>
               <textarea id="img-in" class="code-area fill" spellcheck="false" placeholder="data:image/png;base64,iVBORw0KGgo…"></textarea>
@@ -469,7 +469,7 @@
           <button class="btn-secondary" id="md-clear">清空</button>
         </div>
       </header>
-      <div class="tool-body md-body">
+      <div class="tool-body md-body" data-split="x" data-split-key="tool.md">
         <div class="pane">
           <div class="pane-head"><span>Markdown</span><span id="md-stats" class="muted small"></span></div>
           <textarea id="md-in" class="code-area fill" spellcheck="false" placeholder="# 标题&#10;&#10;开始写 Markdown…"></textarea>
@@ -529,7 +529,7 @@
           <button class="btn-secondary" id="jwt-sample">插入示例</button>
         </div>
       </header>
-      <div class="tool-body jwt-body">
+      <div class="tool-body jwt-body" data-split="x" data-split-key="tool.jwt">
         <div class="jwt-left">
           <div class="pane">
             <div class="pane-head"><span>Token</span><span id="jwt-alg" class="muted small"></span></div>
@@ -570,7 +570,7 @@
           </div>
         </div>
       </header>
-      <div class="tool-body hash-body">
+      <div class="tool-body hash-body" data-split="x" data-split-key="tool.hash">
         <div class="hash-panel" data-hashpanel="text">
           <div class="pane">
             <div class="pane-head">
@@ -637,7 +637,7 @@
             <button class="btn-primary" id="pw-gen">生成</button>
             <button class="btn-secondary" id="pw-copy">复制全部</button>
           </div>
-          <div class="two-pane">
+          <div class="two-pane" data-split="x" data-split-key="tool.pw">
             <textarea id="pw-out" class="code-area fill" spellcheck="false" readonly></textarea>
             <div class="pane">
               <div class="pane-head"><span>强度估算</span></div>
@@ -671,7 +671,7 @@
           <span class="rx-delim">/</span>
           <span id="rx-flags-label" class="muted small">g</span>
         </div>
-        <div class="two-pane">
+        <div class="two-pane" data-split="x" data-split-key="tool.regex">
           <div class="pane">
             <div class="pane-head"><span>测试文本</span><span class="pane-actions"><button class="ghost-btn" data-clear="rx-text">清空</button></span></div>
             <div id="rx-highlight" class="rx-highlight code"></div>
@@ -709,7 +709,7 @@
           <button class="btn-secondary" id="cg-save">保存文件</button>
         </div>
       </header>
-      <div class="tool-body two-pane">
+      <div class="tool-body two-pane" data-split="x" data-split-key="tool.codegen">
         <div class="pane">
           <div class="pane-head">
             <span>cURL 命令</span>
@@ -749,6 +749,7 @@
   </script>
   <script src="lib/json-tree.js"></script>
   <script src="lib/curl.js"></script>
+  <script src="lib/split.js"></script>
   <script src="lib/codec.js"></script>
   <script src="lib/jwt.js"></script>
   <script src="lib/codegen.js"></script>

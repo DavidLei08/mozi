@@ -40,7 +40,7 @@ button { cursor: pointer; }
 /* ---------- Sidebar ---------- */
 .sidebar {
   width: 292px;
-  min-width: 220px;
+  min-width: 0;
   background: var(--bg-2);
   border-right: 1px solid var(--line);
   display: flex;
@@ -647,3 +647,16 @@ body.platform-darwin .tool-head { padding-left: 88px; }
   background: var(--bg-2); border: 1px solid var(--line); color: var(--text-dim);
 }
 .recent-chip:hover { color: var(--text); border-color: var(--accent); }
+
+/* ===================== draggable split handles ===================== */
+.split-handle { flex: none; background: var(--line-soft); position: relative; z-index: 2; }
+.split-handle.is-x { width: 5px; cursor: col-resize; }
+.split-handle.is-y { height: 5px; cursor: row-resize; }
+.split-handle:hover, .split-handle:focus-visible { background: var(--accent); outline: none; }
+.split-handle::after {
+  content: ''; position: absolute; inset: -4px; /* wider hit area */
+}
+body.is-dragging { user-select: none; cursor: col-resize; }
+body.is-dragging-y { cursor: row-resize; }
+body.is-dragging * { pointer-events: none; }
+body.is-dragging .split-handle { pointer-events: auto; }

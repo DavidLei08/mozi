@@ -35,6 +35,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # npm 11 blocks install scripts by default; fetch the Electron binary explicitly.
+      - run: node node_modules/electron/install.js
       - run: npm run smoke -- --no-sandbox --disable-gpu
         env:
           MOZI_SMOKE_OUT: ${{ runner.temp }}/mozi-smoke.png
@@ -62,6 +64,8 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      # npm 11 blocks install scripts by default; electronDist needs node_modules/electron/dist.
+      - run: node node_modules/electron/install.js
       - run: npm run ${{ matrix.script }}
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'

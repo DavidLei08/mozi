@@ -294,6 +294,82 @@ async function runSmoke (win, app) {
     check('sse post receives events', ssePost.lines >= 2, `${ssePost.lines} lines`)
     check('sse post body accepted', ssePost.text.includes('post') && ssePost.text.includes('POST'), ssePost.text.slice(0, 80))
 
+    // ============ DRAGGABLE SPLITS ============
+    const splitResult = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const drag = (el, fromX, fromY, toX, toY) => {
+        const opts = (x, y) => ({ bubbles: true, cancelable: true, pointerId: 1, clientX: x, clientY: y, button: 0 })
+        el.dispatchEvent(new PointerEvent('pointerdown', opts(fromX, fromY)))
+        window.dispatchEvent(new PointerEvent('pointermove', opts(toX, toY)))
+        window.dispatchEvent(new PointerEvent('pointerup', opts(toX, toY)))
+      }
+      const w = (sel) => Math.round(document.querySelector(sel).getBoundingClientRect().width)
+      const h = (sel) => Math.round(document.querySelector(sel).getBoundingClientRect().height)
+
+      // horizontal: sidebar
+      const bar = document.querySelector('.app > .split-handle.is-x')
+      const before = w('.sidebar')
+      const r = bar.getBoundingClientRect()
+      drag(bar, r.left + 2, r.top + 20, r.left + 120, r.top + 20)
+      await wait(120)
+      const afterWide = w('.sidebar')
+      const persistedAfterDrag = localStorage.getItem('mozi.split.http.sidebar')
+
+      // double-click resets to the default
+      bar.dispatchEvent(new MouseEvent('dblclick', { bubbles: true, cancelable: true }))
+      await wait(120)
+      const afterReset = w('.sidebar')
+
+      // vertical: request | response
+      const vbar = document.querySelector('#splitter')
+      const beforeH = h('.request-pane')
+      const vr = vbar.getBoundingClientRect()
+      drag(vbar, vr.left + 20, vr.top + 2, vr.left + 20, vr.top + 160)
+      await wait(120)
+      const afterH = h('.request-pane')
+
+      return JSON.stringify({
+        barFound: !!bar, vbarFound: !!vbar,
+        before, afterWide, afterReset,
+        beforeH, afterH,
+        persistedAfterDrag,
+        persistedVertical: localStorage.getItem('mozi.split.http.vertical')
+      })
+    })()`))
+    const verticalRestoredTarget = splitResult.afterH
+    check('split handles rendered', splitResult.barFound && splitResult.vbarFound)
+    check('horizontal drag resizes sidebar', splitResult.afterWide > splitResult.before + 100 && splitResult.afterWide < splitResult.before + 140, `${splitResult.before} -> ${splitResult.afterWide}`)
+    check('double-click resets sidebar', Math.abs(splitResult.afterReset - 292) < 8, String(splitResult.afterReset))
+    check('vertical drag resizes request pane', splitResult.afterH !== splitResult.beforeH, `${splitResult.beforeH} -> ${splitResult.afterH}`)
+    check('split size persisted', splitResult.persistedAfterDrag !== null && Number(splitResult.persistedAfterDrag) > 400, String(splitResult.persistedAfterDrag))
+    check('vertical split persisted', splitResult.persistedVertical !== null, String(splitResult.persistedVertical))
+
+    // The double-click reset above cleared the stored width, so drag again and
+    // then reload: the split must restore from storage on a fresh document.
+    const redrag = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const bar = document.querySelector('.app > .split-handle.is-x')
+      const r = bar.getBoundingClientRect()
+      const opts = (x, y) => ({ bubbles: true, cancelable: true, pointerId: 1, clientX: x, clientY: y, button: 0 })
+      bar.dispatchEvent(new PointerEvent('pointerdown', opts(r.left + 2, r.top + 20)))
+      window.dispatchEvent(new PointerEvent('pointermove', opts(r.left + 60, r.top + 20)))
+      window.dispatchEvent(new PointerEvent('pointerup', opts(r.left + 60, r.top + 20)))
+      await wait(120)
+      return JSON.stringify({
+        width: Math.round(document.querySelector('.sidebar').getBoundingClientRect().width),
+        stored: localStorage.getItem('mozi.split.http.sidebar')
+      })
+    })()`))
+    await win.webContents.reload()
+    await new Promise((r) => setTimeout(r, 1800))
+    const restored = JSON.parse(await step(`JSON.stringify({
+      sidebar: Math.round(document.querySelector('.sidebar').getBoundingClientRect().width),
+      request: Math.round(document.querySelector('.request-pane').getBoundingClientRect().height),
+      stored: localStorage.getItem('mozi.split.http.sidebar')
+    })`))
+    check('split restores after reload', Math.abs(restored.sidebar - redrag.width) < 4, `${redrag.width} -> ${restored.sidebar}`)
+    check('vertical split restores after reload', Math.abs(restored.request - verticalRestoredTarget) < 12, `${verticalRestoredTarget} -> ${restored.request}`)
+
     // ============ SAVE + CURL ============
     const saveResult = JSON.parse(await step(`(async () => {
       const wait = (ms) => new Promise(r => setTimeout(r, ms))

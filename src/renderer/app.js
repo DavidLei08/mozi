@@ -1713,23 +1713,20 @@
     api.ws.onEvent(onWsEvent)
     api.sse.onEvent(onSseEvent)
 
-    // splitter
-    const splitter = $('#splitter')
-    let dragging = false
-    splitter.addEventListener('pointerdown', (e) => {
-      dragging = true
-      splitter.setPointerCapture(e.pointerId)
-      document.body.style.cursor = 'row-resize'
+    // request | response vertical split (the stream pane swaps in for the
+    // response pane in WS/SSE mode, so both are given as candidates)
+    Split.handle({
+      first: $('.request-pane'),
+      second: [$('.response-pane'), $('.stream-pane')],
+      handle: $('#splitter'),
+      axis: 'y',
+      unit: 'pct',
+      storageKey: 'http.vertical',
+      def: 52,
+      min: 20,
+      max: 80
     })
-    splitter.addEventListener('pointermove', (e) => {
-      if (!dragging) return
-      const workspace = $('.workspace').getBoundingClientRect()
-      const y = e.clientY - workspace.top
-      const pct = Math.min(80, Math.max(20, (y / workspace.height) * 100))
-      $('.request-pane').style.flex = `0 0 ${pct}%`
-      state.ui.split = pct
-    })
-    splitter.addEventListener('pointerup', () => { dragging = false; document.body.style.cursor = ''; saveSoon() })
+    Split.auto()
 
     // Esc: close a dialog first, otherwise go back to the toolbox
     window.addEventListener('keydown', (e) => {
@@ -1798,7 +1795,6 @@
     $('#opt-timing').checked = state.settings.showTiming !== false
     wire()
     renderAll()
-    if (state.ui.split) $('.request-pane').style.flex = `0 0 ${state.ui.split}%`
     renderSidebar()
     renderHome('')
     showView(state.ui.view || 'home')
