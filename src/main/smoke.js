@@ -768,13 +768,14 @@ async function runSmoke (win, app) {
       await wait(500)
       return JSON.stringify({
         hasHandler: !!btn,
-        label: btn ? btn.textContent.trim() : '',
+        label: btn ? (btn.title || btn.textContent.trim()) : '',
+        hasIcon: !!(btn && btn.querySelector('svg')),
         h1: (document.querySelector('#md-preview h1') || {}).textContent || '',
         base: document.querySelector('#md-base').textContent,
         editorHasContent: document.querySelector('#md-in').value.includes('本地 md 内容')
       })
     })()`))
-    check('md open button present', mdOpen.hasHandler, mdOpen.label)
+    check('md open button present', mdOpen.hasHandler && mdOpen.hasIcon, mdOpen.label)
     check('md open loads content and sets the image folder',
       mdOpen.h1 === '从文件打开' && mdOpen.editorHasContent && mdOpen.base === path.dirname(mdFile),
       JSON.stringify({ ...mdOpen, expectedBase: path.dirname(mdFile) }))
@@ -793,6 +794,165 @@ async function runSmoke (win, app) {
     })()`))
     check('markdown file content renders', mdLoaded.h1 === '从文件打开' && mdLoaded.para, JSON.stringify(mdLoaded))
     await fsp.unlink(mdFile).catch(() => {})
+
+    // ---- markdown: draft persistence and saving back to the opened file ----
+    const mdSaveDoc = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const input = document.querySelector('#md-in')
+      input.value = '# 保存测试 草稿内容'
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      await wait(800)
+      return JSON.stringify({ text: String(window.__moziData.mdDoc().text), renderSeam: typeof window.__moziRenderMarkdown })
+    })()`))
+    check('markdown keeps a draft in the store', mdSaveDoc.text === '# 保存测试 草稿内容', mdSaveDoc.text)
+    check('markdown editor is fully initialised', mdSaveDoc.renderSeam === 'function', mdSaveDoc.renderSeam)
+
+    const mdSaveFile = path.join(app.getPath('temp'), 'mozi-smoke-save.md')
+    await fsp.writeFile(mdSaveFile, '旧内容', 'utf8')
+    const mdSaved = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      window.__moziOpenMarkdownFile(${JSON.stringify(mdSaveFile)}, '打开时的内容')
+      await wait(350)
+      const input = document.querySelector('#md-in')
+      input.value = '改过之后的内容'
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      await wait(350)
+      const state = window.__moziMarkdownState()
+      await window.__moziMarkdownSave(false)
+      await wait(500)
+      return JSON.stringify({
+        path: state.path,
+        fileLabel: document.querySelector('#md-file').textContent,
+        toast: document.querySelector('#toast').textContent,
+        draft: window.__moziData.mdDoc().text
+      })
+    })()`))
+    const mdOnDisk = await fsp.readFile(mdSaveFile, 'utf8')
+    check('markdown saves back to the opened file', mdOnDisk === '改过之后的内容', JSON.stringify(mdOnDisk))
+    check('markdown shows the current file and confirms the save',
+      mdSaved.path === mdSaveFile && mdSaved.fileLabel.includes('mozi-smoke-save.md') &&
+      mdSaved.draft === '改过之后的内容' && /已保存/.test(mdSaved.toast),
+      JSON.stringify(mdSaved))
+    await fsp.unlink(mdSaveFile).catch(() => {})
+
+    // ---- markdown quick actions in the editor box ----
+    const mdTools = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const NL = String.fromCharCode(10)
+      const input = document.querySelector('#md-in')
+      const click = (sel) => { const node = document.querySelector(sel); if (node) node.click() }
+      const setText = (text) => {
+        input.value = text
+        input.dispatchEvent(new Event('input', { bubbles: true }))
+        input.focus()
+      }
+
+      setText('加粗这段文字')
+      input.setSelectionRange(0, 2)
+      click('#md-toolbar button[data-md-inline="bold"]')
+      await wait(250)
+      const afterBold = input.value
+      const previewStrong = /<strong>/.test(document.querySelector('#md-preview').innerHTML)
+
+      setText('第一行' + NL + '第二行')
+      input.setSelectionRange(0, input.value.length)
+      click('#md-toolbar button[data-md-line="ul"]')
+      await wait(250)
+      const afterList = input.value
+
+      setText('')
+      input.setSelectionRange(0, 0)
+      click('#md-toolbar button[data-md-block="table"]')
+      await wait(250)
+      const afterTable = input.value
+
+      setText('标题文本')
+      input.setSelectionRange(0, input.value.length)
+      click('#md-toolbar button[data-md-heading="2"]')
+      await wait(250)
+      const afterHeading = input.value
+
+      return JSON.stringify({
+        afterBold, previewStrong, afterList, afterTable, afterHeading,
+        buttons: document.querySelectorAll('#md-toolbar button').length,
+        menus: document.querySelectorAll('#md-toolbar .md-menu').length,
+        hasSave: !!document.querySelector('#md-tb-save'),
+        hasImage: !!document.querySelector('#md-tb-image'),
+        hasLink: !!document.querySelector('#md-tb-link')
+      })
+    })()`))
+    const mdHeader = JSON.parse(await step(`(() => {
+      const buttons = [...document.querySelectorAll('#view-markdown .tool-head-actions button')]
+      return JSON.stringify({
+        count: buttons.length,
+        allIcons: buttons.every((b) => !!b.querySelector('svg')),
+        allTitled: buttons.every((b) => b.title && b.title.trim().length > 0),
+        noText: buttons.every((b) => b.textContent.trim() === ''),
+        titles: buttons.map((b) => b.title),
+        saveControls: document.querySelectorAll('#md-tb-save, #md-save').length,
+        imageControls: document.querySelectorAll('#md-tb-image, #md-image').length,
+        notepadImageControls: document.querySelectorAll('#np-tb-image, #np-image').length
+      })
+    })()`))
+    check('markdown header actions are icon buttons with tooltips',
+      mdHeader.count === 7 && mdHeader.allIcons && mdHeader.allTitled && mdHeader.noText,
+      JSON.stringify({ count: mdHeader.count, icons: mdHeader.allIcons, titles: mdHeader.allTitled, noText: mdHeader.noText }))
+    check('save and image actions live only in the editor toolbar',
+      mdHeader.saveControls === 1 && mdHeader.imageControls === 1 && mdHeader.notepadImageControls === 1,
+      JSON.stringify({ save: mdHeader.saveControls, image: mdHeader.imageControls, notepad: mdHeader.notepadImageControls }))
+    check('markdown tooltips are translated',
+      mdHeader.titles.includes('另存为…') && mdHeader.titles.includes('打开 Markdown 文件…') && !mdHeader.titles.includes('插入图片'),
+      JSON.stringify(mdHeader.titles))
+
+    check('markdown toolbar exposes quick actions',
+      mdTools.buttons >= 10 && mdTools.menus >= 4 && mdTools.hasSave && mdTools.hasImage && mdTools.hasLink,
+      JSON.stringify({ buttons: mdTools.buttons, menus: mdTools.menus }))
+    check('bold wraps the selection and renders',
+      mdTools.afterBold === '**加粗**这段文字' && mdTools.previewStrong, mdTools.afterBold)
+    check('list prefixes every selected line',
+      mdTools.afterList === '- 第一行\n- 第二行', JSON.stringify(mdTools.afterList))
+    check('insert table writes a markdown table',
+      mdTools.afterTable.includes('| 列 1 | 列 2 |') && mdTools.afterTable.includes('| --- | --- |'), JSON.stringify(mdTools.afterTable))
+    check('heading prefixes the line',
+      mdTools.afterHeading === '## 标题文本', mdTools.afterHeading)
+    await step(`(() => {
+      const NL = String.fromCharCode(10)
+      const input = document.querySelector('#md-in')
+      input.value = ['## 发布检查清单', '', '- [ ] 单元测试', '- [ ] 端到端测试', '', '| 项 | 状态 |', '| --- | --- |', '| 请求工具 | 通过 |', '', '> 备注：**加粗**与 ' + String.fromCharCode(96) + 'code' + String.fromCharCode(96)].join(NL)
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      const menu = document.querySelector('#md-toolbar .md-menu')
+      if (menu) menu.setAttribute('open', '')
+      return true
+    })()`)
+    await new Promise((r) => setTimeout(r, 600))
+    await step(`(() => { const m = document.querySelector('#md-toolbar .md-menu[open]'); if (m) m.removeAttribute('open'); return true })()`)
+    await new Promise((r) => setTimeout(r, 250))
+    await capture(shot('-md-toolbar'))
+
+    // the save button carries an unsaved marker that clears once written
+    const mdPath = path.join(app.getPath('temp'), 'mozi-smoke-quick.md')
+    await fsp.writeFile(mdPath, 'x', 'utf8')
+    const mdIndicator = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const dot = document.querySelector('#md-dirty')
+      window.__moziOpenMarkdownFile(${JSON.stringify(mdPath)}, '已保存的内容')
+      await wait(300)
+      const cleanAtOpen = dot.hidden
+      const input = document.querySelector('#md-in')
+      input.value = '改动了'
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      await wait(500)
+      const dirtyAfterEdit = !dot.hidden
+      await window.__moziMarkdownSave(false)
+      await wait(500)
+      return JSON.stringify({ cleanAtOpen, dirtyAfterEdit, cleanAfterSave: dot.hidden })
+    })()`))
+    const mdQuickOnDisk = await fsp.readFile(mdPath, 'utf8')
+    check('unsaved marker tracks the document state',
+      mdIndicator.cleanAtOpen && mdIndicator.dirtyAfterEdit && mdIndicator.cleanAfterSave && mdQuickOnDisk === '改动了',
+      JSON.stringify({ ...mdIndicator, disk: mdQuickOnDisk }))
+    await step(`(() => { const b = document.querySelector('#md-toolbar button[data-md-block="code"]'); if (b) b.click(); return true })()`).catch(() => {})
+    await fsp.unlink(mdPath).catch(() => {})
 
     // ============ DRAGGABLE SPLITS ============
     // the theme/markdown sections above left us on another view

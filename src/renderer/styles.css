@@ -734,7 +734,11 @@ body.is-dragging .split-handle { pointer-events: auto; }
 #cookieHint { margin: 10px 0 0; }
 
 /* ---------------- markdown fullscreen preview ---------------- */
-.md-base { max-width: 42ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.md-base { max-width: 42ch; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* the preview head carries a path and a hint; keep them on one line */
+.md-body .pane-head { flex-wrap: nowrap; gap: 10px; }
+.md-body .pane-head > span { white-space: nowrap; }
+.md-body .pane-head > span:last-child { overflow: hidden; text-overflow: ellipsis; }
 .md-base:empty { display: none; }
 
 /* the preview takes over the whole window; the editor and chrome step aside */
@@ -849,3 +853,57 @@ body.is-dragging .split-handle { pointer-events: auto; }
 }
 .td-icon-btn:hover { color: var(--text); border-color: var(--line-strong, var(--line)); }
 .td-empty { font-size: 12px; color: var(--muted); padding: 6px 2px; }
+
+/* ---------------- markdown editor quick actions ---------------- */
+/* no overflow here: an ancestor with overflow clips the absolutely positioned
+   dropdown panels, which made the 列表 / 代码块 / 格式 / 插入 menus invisible */
+.md-toolbar {
+  display: flex; align-items: center; gap: 2px; flex: none; flex-wrap: wrap;
+  padding: 5px 10px; border-bottom: 1px solid var(--line); background: var(--panel);
+}
+.md-btn {
+  min-width: 28px; height: 26px; padding: 0 8px; border-radius: 6px; cursor: pointer;
+  background: transparent; border: 1px solid transparent; color: var(--text);
+  font: inherit; font-size: 12px; line-height: 1; flex: none;
+}
+.md-btn:hover { background: var(--bg-2); border-color: var(--line); }
+.md-btn:active { border-color: var(--accent); color: var(--accent); }
+.md-sep { width: 1px; height: 16px; background: var(--line); margin: 0 4px; flex: none; }
+.md-spacer { flex: 1; }
+.md-menu { position: relative; flex: none; }
+.md-menu > summary {
+  list-style: none; cursor: pointer; height: 26px; display: flex; align-items: center;
+  padding: 0 8px; border-radius: 6px; border: 1px solid transparent;
+  font-size: 12px; color: var(--text); user-select: none;
+}
+.md-menu > summary::-webkit-details-marker { display: none; }
+.md-menu > summary:hover { background: var(--bg-2); border-color: var(--line); }
+.md-menu[open] > summary { background: var(--bg-2); border-color: var(--accent); color: var(--accent); }
+.md-menu-body {
+  position: absolute; top: 30px; left: 0; z-index: 40; min-width: 132px;
+  display: flex; flex-direction: column; padding: 4px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 9px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .18);
+}
+.md-menu-body button {
+  text-align: left; padding: 7px 9px; border: 0; border-radius: 6px; cursor: pointer;
+  background: transparent; color: var(--text); font: inherit; font-size: 12px;
+}
+.md-menu-body button:hover { background: var(--bg-2); color: var(--accent); }
+.md-save-btn {
+  position: relative; display: inline-flex; align-items: center; gap: 6px;
+  padding: 0 10px; border-color: var(--accent); color: var(--accent); font-weight: 600;
+}
+.md-save-btn:hover { background: color-mix(in srgb, var(--accent) 12%, transparent); border-color: var(--accent); }
+.md-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--red, #d23a3e); flex: none;
+}
+.md-dot[hidden] { display: none; }
+
+/* icon-only header actions with a hover tooltip (title attribute) */
+.icon-action {
+  width: 32px; height: 32px; padding: 0; display: inline-flex;
+  align-items: center; justify-content: center; flex: none;
+}
+.icon-action svg { width: 17px; height: 17px; display: block; }
+.icon-action[aria-pressed="true"], .icon-action.is-on { border-color: var(--accent); color: var(--accent); }

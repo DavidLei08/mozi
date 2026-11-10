@@ -12,6 +12,7 @@
     collections: [],
     notes: [],
     todos: [],
+    mdDoc: { text: '', path: null, updatedAt: null },
     cookies: [],
     history: [],
     environments: [{ id: uid(), name: 'Default', builtin: 'default', vars: [] }],
@@ -1509,7 +1510,9 @@
     notesUI: () => state.ui.notepad || (state.ui.notepad = { activeId: null }),
     todos: () => state.todos,
     setTodos: (list) => { state.todos = Array.isArray(list) ? list : []; saveSoon() },
-    todosUI: () => state.ui.todos || (state.ui.todos = { hideDone: false, archiveOpen: false })
+    todosUI: () => state.ui.todos || (state.ui.todos = { hideDone: false, archiveOpen: false }),
+    mdDoc: () => state.mdDoc || (state.mdDoc = { text: '', path: null, updatedAt: null }),
+    setMdDoc: (doc) => { state.mdDoc = Object.assign({ text: '', path: null, updatedAt: null }, doc || {}); saveSoon() }
   }
 
   // ---------------------------------------------------------------- language

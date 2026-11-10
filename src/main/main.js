@@ -180,6 +180,19 @@ function registerIpc () {
     return { ok: true, path: result.filePath }
   })
 
+  // Write text to a path we already know, so "save" does not re-prompt when the
+  // document came from a file the user opened.
+  ipcMain.handle('files:write-text', async (_event, payload) => {
+    const filePath = String((payload && payload.path) || '')
+    if (!filePath) return { ok: false, error: 'No file path' }
+    try {
+      await fsp.writeFile(filePath, String((payload && payload.content) == null ? '' : payload.content), 'utf8')
+      return { ok: true, path: filePath }
+    } catch (err) {
+      return { ok: false, error: err.message }
+    }
+  })
+
   ipcMain.handle('dialog:open-text', async (_event, { filters } = {}) => {
     const result = await dialog.showOpenDialog(win, {
       properties: ['openFile'],

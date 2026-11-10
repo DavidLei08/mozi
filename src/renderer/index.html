@@ -493,24 +493,74 @@
         <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)" data-i18n-title="nav.backHome">M</button>
         <h2 data-i18n="tool.markdown.title">Markdown 编辑器</h2>
         <div class="tool-head-actions">
-          <button class="btn-secondary" id="md-open" data-i18n="md.open">打开 .md 文件…</button>
-          <button class="btn-secondary" id="md-image" data-i18n="md.insertImage">插入图片</button>
-          <button class="btn-secondary" id="md-full" data-i18n="md.fullscreen">全屏预览</button>
-          <button class="btn-secondary" id="md-sample" data-i18n="btn.insertSample">插入示例</button>
-          <button class="btn-secondary" id="md-copy-html" data-i18n="md.copyHtml">复制 HTML</button>
-          <button class="btn-secondary" id="md-export" data-i18n="md.exportHtml">导出 HTML</button>
-          <button class="btn-secondary" id="md-clear" data-i18n="btn.clear">清空</button>
+          <button class="btn-secondary icon-action" id="md-save-as" type="button" title="" data-i18n-title="md.saveAs" aria-label="" data-i18n-aria="md.saveAs"><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 3h9l3 3v11H4z"/><path d="M7 3v4h5V3"/><path d="M9 12v5M6.5 14.5 9 12l2.5 2.5"/></svg></button>
+          <button class="btn-secondary icon-action" id="md-open" type="button" title="" data-i18n-title="md.open" aria-label="" data-i18n-aria="md.open"><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h5l2 2h6v9H3z"/><path d="M3 6V4h5l2 2"/></svg></button>
+          <button class="btn-secondary icon-action" id="md-full" type="button" title="" data-i18n-title="md.fullscreen" aria-label="" data-i18n-aria="md.fullscreen"><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8V4h4M16 8V4h-4M4 12v4h4M16 12v4h-4"/></svg></button>
+          <button class="btn-secondary icon-action" id="md-sample" type="button" title="" data-i18n-title="btn.insertSample" aria-label="" data-i18n-aria="btn.insertSample"><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 3h8l3 3v11H5z"/><path d="M8 9h6M8 12h6M8 15h3"/></svg></button>
+          <button class="btn-secondary icon-action" id="md-copy-html" type="button" title="" data-i18n-title="md.copyHtml" aria-label="" data-i18n-aria="md.copyHtml"><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="7" y="7" width="9" height="10" rx="2"/><path d="M5 14V6a2 2 0 0 1 2-2h7"/></svg></button>
+          <button class="btn-secondary icon-action" id="md-export" type="button" title="" data-i18n-title="md.exportHtml" aria-label="" data-i18n-aria="md.exportHtml"><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10 3v9"/><path d="M6.5 8.5 10 12l3.5-3.5"/><path d="M4 15v2h12v-2"/></svg></button>
+          <button class="btn-secondary icon-action" id="md-clear" type="button" title="" data-i18n-title="btn.clear" aria-label="" data-i18n-aria="btn.clear"><svg viewBox="0 0 20 20" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h12"/><path d="M7 6V4h6v2"/><path d="M6 6l1 11h6l1-11"/></svg></button>
         </div>
       </header>
       <div class="tool-body md-body" data-split="x" data-split-key="tool.md">
         <div class="pane">
           <div class="pane-head"><span data-i18n="md.paneLabel">Markdown</span><span id="md-stats" class="muted small"></span></div>
+          <div class="md-toolbar" id="md-toolbar">
+            <button class="md-btn" type="button" data-md-inline="bold" title="加粗" data-i18n-title="md.bold"><b>B</b></button>
+            <button class="md-btn" type="button" data-md-inline="italic" title="斜体" data-i18n-title="md.italic"><i>I</i></button>
+            <button class="md-btn" type="button" data-md-heading="1" title="标题" data-i18n-title="md.heading">H</button>
+            <button class="md-btn" type="button" data-md-inline="strike" title="删除线" data-i18n-title="md.strike"><s>S</s></button>
+            <span class="md-sep"></span>
+            <details class="md-menu">
+              <summary title="列表" data-i18n-title="md.lists"><span data-i18n="md.lists">列表</span> ▾</summary>
+              <div class="md-menu-body">
+                <button type="button" data-md-line="ul" data-i18n="md.listUl">无序列表</button>
+                <button type="button" data-md-line="ol" data-i18n="md.listOl">有序列表</button>
+                <button type="button" data-md-line="task" data-i18n="md.listTask">任务清单</button>
+              </div>
+            </details>
+            <details class="md-menu">
+              <summary title="代码" data-i18n-title="md.codeMenu"><span data-i18n="md.codeMenu">代码块</span> ▾</summary>
+              <div class="md-menu-body">
+                <button type="button" data-md-inline="code" data-i18n="md.inlineCode">行内代码</button>
+                <button type="button" data-md-block="code" data-i18n="md.codeBlock">代码块</button>
+                <button type="button" data-md-line="quote" data-i18n="md.quote">引用</button>
+              </div>
+            </details>
+            <details class="md-menu">
+              <summary title="格式" data-i18n-title="md.formatMenu"><span data-i18n="md.formatMenu">格式</span> ▾</summary>
+              <div class="md-menu-body">
+                <button type="button" data-md-heading="1" data-i18n="md.h1">一级标题</button>
+                <button type="button" data-md-heading="2" data-i18n="md.h2">二级标题</button>
+                <button type="button" data-md-heading="3" data-i18n="md.h3">三级标题</button>
+                <button type="button" data-md-block="hr" data-i18n="md.divider">分隔线</button>
+                <button type="button" data-md-clear="mark" data-i18n="md.clearFormat">清除标记</button>
+              </div>
+            </details>
+            <span class="md-sep"></span>
+            <button class="md-btn" type="button" id="md-tb-image" title="插入图片" data-i18n-title="np.insertImage">🖼</button>
+            <button class="md-btn" type="button" id="md-tb-link" title="插入链接" data-i18n-title="md.link">🔗</button>
+            <details class="md-menu">
+              <summary title="插入" data-i18n-title="md.insertMenu"><span data-i18n="md.insertMenu">插入</span> ▾</summary>
+              <div class="md-menu-body">
+                <button type="button" data-md-block="table" data-i18n="md.table">表格</button>
+                <button type="button" data-md-block="date" data-i18n="md.date">当前日期</button>
+                <button type="button" data-md-block="time" data-i18n="md.time">当前时间</button>
+                <button type="button" data-md-block="details" data-i18n="md.details">折叠块</button>
+              </div>
+            </details>
+            <span class="md-spacer"></span>
+            <button class="md-btn md-save-btn" type="button" id="md-tb-save" title="保存 (⌘S)" data-i18n-title="md.save">
+              <span data-i18n="md.saveShort">保存</span><span class="md-dot" id="md-dirty" hidden></span>
+            </button>
+          </div>
           <textarea id="md-in" class="code-area fill" spellcheck="false" placeholder="# 标题&#10;&#10;开始写 Markdown…" data-i18n-placeholder="md.inputPlaceholder"></textarea>
         </div>
         <div class="pane">
           <div class="pane-head">
             <span data-i18n="label.preview">预览</span>
             <span id="md-base" class="muted small md-base" title="" data-i18n-title="md.baseDirHint"></span>
+            <span id="md-file" class="muted small md-base" data-i18n-title="md.fileHint"></span>
             <span class="muted small" data-i18n="md.previewHint">支持图片与 ```mermaid 流程图</span>
           </div>
           <button class="md-fullscreen-exit" id="md-exit-full" type="button">
@@ -775,7 +825,6 @@
         <h2 data-i18n="tool.notepad.title">记事本</h2>
         <div class="tool-head-actions">
           <button class="btn-primary" id="np-new" data-i18n="np.new">新建笔记</button>
-          <button class="btn-secondary" id="np-image" data-i18n="np.insertImage">插入图片</button>
           <button class="btn-secondary" id="np-export" data-i18n="np.export">导出 HTML</button>
           <button class="btn-secondary" id="np-delete" data-i18n="np.delete">删除笔记</button>
         </div>

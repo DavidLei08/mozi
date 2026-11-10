@@ -35,7 +35,8 @@ contextBridge.exposeInMainWorld('api', {
   files: {
     pick: () => ipcRenderer.invoke('fs:pick-files'),
     readBase64: (filePath) => ipcRenderer.invoke('files:read-base64', filePath),
-    saveBase64: (payload) => ipcRenderer.invoke('files:save-base64', payload)
+    saveBase64: (payload) => ipcRenderer.invoke('files:save-base64', payload),
+    writeText: (payload) => ipcRenderer.invoke('files:write-text', payload)
   },
 
   dialog: {

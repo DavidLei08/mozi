@@ -481,6 +481,16 @@ flowchart LR
     })
   }
 
+  // Register a listener only when the element exists: one missing id used to
+  // throw and abort the rest of the tool's init, silently disabling live
+  // preview and draft saving.
+  function on (selector, type, handler, opts) {
+    const node = document.querySelector(selector)
+    if (!node) { console.warn('missing element for listener:', selector); return null }
+    node.addEventListener(type, handler, opts)
+    return node
+  }
+
   function initMarkdown () {
     const input = $('#md-in')
     const preview = $('#md-preview')
@@ -513,6 +523,21 @@ flowchart LR
     // Markdown written next to its assets uses `./img/x.png`; the renderer runs
     // in a file:// document, so those URLs must be rewritten against the folder
     // of the .md file the user opened.
+    // The markdown document is a draft that survives restarts: the text and the
+    // file it came from live in the store, so nothing is lost between sessions.
+    let mdFilePath = null
+    const mdBridge = () => window.__moziData
+    function mdSaveDraft () {
+      if (!mdBridge || !mdBridge()) return
+      mdBridge().setMdDoc({ text: input.value, path: mdFilePath, updatedAt: new Date().toISOString() })
+    }
+    function mdShowFile () {
+      const label = document.querySelector('#md-file')
+      if (!label) return
+      label.textContent = mdFilePath ? mdFilePath : tr('md.unsavedDraft', '未保存的草稿')
+      label.title = mdFilePath ? mdFilePath : tr('md.unsavedDraftHint', '草稿会自动保存，重启后仍在；点「保存」写入 .md 文件')
+    }
+
     const MD_BASE_KEY = 'mozi.mdBaseDir'
     let mdBaseDir = (() => { try { return localStorage.getItem(MD_BASE_KEY) || '' } catch { return '' } })()
     let mdFullscreen = false
@@ -578,8 +603,13 @@ flowchart LR
     // smoke harness both go through here
     function openMarkdownFile (filePath, content) {
       input.value = String(content == null ? '' : content)
+      mdFilePath = filePath || null
+      mdSavedText = input.value
       setBaseDir(dirName(filePath), { rerender: false })
+      mdShowFile()
       render()
+      mdUpdateDirty()
+      mdSaveDraft()
     }
 
     function setFullscreen (on) {
@@ -598,6 +628,9 @@ flowchart LR
     // test seam: point the resolver at a folder without going through a dialog
     window.__moziSetMdBaseDir = (dir) => setBaseDir(dir)
     window.__moziOpenMarkdownFile = openMarkdownFile
+    window.__moziMarkdownSave = (forceDialog) => saveMarkdown(!!forceDialog)
+    window.__moziMarkdownState = () => ({ path: mdFilePath, draft: dollarInputValue() })
+    function dollarInputValue () { return input.value }
     window.__moziMdState = () => ({ baseDir: mdBaseDir, fullscreen: mdFullscreen })
 
     function render () {
@@ -613,24 +646,82 @@ flowchart LR
       resolveRelativeImages(preview)
       renderMermaid(preview, myToken).catch(() => {})
       const fullBtn = document.querySelector('#md-full')
-      if (fullBtn) fullBtn.textContent = mdFullscreen ? tr('md.exitFullscreen', '退出全屏') : tr('md.fullscreen', '全屏预览')
+      if (fullBtn) {
+        const label = mdFullscreen ? tr('md.exitFullscreen', '退出全屏') : tr('md.fullscreen', '全屏预览')
+        fullBtn.title = label
+        fullBtn.setAttribute('aria-label', label)
+        fullBtn.classList.toggle('is-on', mdFullscreen)
+      }
       const chars = text.length
       const words = (text.match(/[\u4e00-\u9fa5]|[A-Za-z0-9_\u00c0-\u024f]+/g) || []).length
       stats.textContent = `${chars} 字符 · ${words} 词`
     }
 
     if (mdBaseDir) setBaseDir(mdBaseDir, { rerender: false })
-    $('#md-full').addEventListener('click', () => setFullscreen(!mdFullscreen))
-    $('#md-exit-full').addEventListener('click', () => setFullscreen(false))
-    input.addEventListener('input', debounce(render, 100))
-    $('#md-image').addEventListener('click', async () => {
-      const files = await api.files.pick()
-      if (!files[0]) return
-      const result = await api.files.readBase64(files[0].path)
-      if (!result.ok) { toast(result.error || '读取失败'); return }
-      insertAtCursor(`\n![${files[0].name}](data:${result.mime};base64,${result.base64})\n`)
-      toast(tr('img.inserted', '图片已插入'))
+    const draft = mdBridge && mdBridge() ? mdBridge().mdDoc() : null
+    if (draft && draft.text) {
+      input.value = draft.text
+      mdFilePath = draft.path || null
+    }
+    mdShowFile()
+    render()
+    on('#md-full', 'click', () => setFullscreen(!mdFullscreen))
+    on('#md-exit-full', 'click', () => setFullscreen(false))
+    const mdPersist = debounce(mdSaveDraft, 400)
+    async function saveMarkdown (forceDialog) {
+      const content = input.value
+      if (!forceDialog && mdFilePath) {
+        const result = await api.files.writeText({ path: mdFilePath, content })
+        if (result && result.ok) {
+          mdSavedText = content
+          mdUpdateDirty()
+          toast(tr('md.savedTo', '已保存到 {name}').replace('{name}', mdFilePath.split('/').pop()))
+          mdSaveDraft(); mdShowFile(); return
+        }
+        toast(`${tr('md.saveFailed', '保存失败')}: ${(result && result.error) || mdFilePath}`)
+        return
+      }
+      const suggested = mdFilePath ? mdFilePath.split('/').pop() : 'note.md'
+      const result = await api.dialog.saveText({
+        defaultName: suggested,
+        content,
+        filters: [{ name: 'Markdown', extensions: ['md', 'markdown'] }]
+      })
+      if (result && result.ok) {
+        mdFilePath = result.path
+        mdSavedText = content
+        mdUpdateDirty()
+        setBaseDir(dirName(result.path), { rerender: false })
+        mdSaveDraft()
+        mdShowFile()
+        toast(tr('md.savedTo', '已保存到 {name}').replace('{name}', String(result.path).split('/').pop()))
+      }
+    }
+    on('#md-save-as', 'click', () => { saveMarkdown(true) })
+
+    window.addEventListener('keydown', (event) => {
+      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 's') return
+      if (document.querySelector('.view.is-active')?.dataset.view !== 'markdown') return
+      event.preventDefault()
+      saveMarkdown(false)
     })
+
+    input.addEventListener('input', () => { mdUpdateDirty(); mdPersist() })
+    input.addEventListener('input', debounce(render, 100))
+    async function pickAndInsertImage () {
+      let files = []
+      try { files = await api.files.pick() } catch (err) { toast(`${tr('img.readFailed', '读取图片失败')}: ${err && err.message ? err.message : err}`); return }
+      if (!files || !files[0]) return
+      try {
+        const result = await api.files.readBase64(files[0].path)
+        if (!result || !result.ok) { toast(`${tr('img.readFailed', '读取图片失败')}: ${(result && result.error) || files[0].path}`); return }
+        const mime = (result.mime && /^image\//i.test(result.mime)) ? result.mime : 'image/png'
+        insertAtCursor(`\n![${files[0].name}](data:${mime};base64,${result.base64})\n`)
+        toast(tr('img.inserted', '图片已插入'))
+      } catch (err) {
+        toast(`${tr('img.readFailed', '读取图片失败')}: ${err && err.message ? err.message : err}`)
+      }
+    }
 
     input.addEventListener('paste', async (e) => {
       const items = e.clipboardData ? Array.from(e.clipboardData.items || []) : []
@@ -685,6 +776,156 @@ ${preview.innerHTML}
       const result = await api.dialog.saveText({ defaultName: 'mozi-markdown.html', content: html, filters: [{ name: 'HTML', extensions: ['html'] }] })
       if (result.ok) toast(`已导出到 ${result.path}`)
     })
+
+    // ---- in-editor quick actions -------------------------------------------
+    // The editor is a plain textarea, so every action rewrites markdown source
+    // and restores the caret/selection, which also makes it undoable with ⌘Z.
+    let mdSavedText = input.value
+
+    function mdDirty () {
+      if (!input.value.trim()) return false
+      return !(mdFilePath && mdSavedText === input.value)
+    }
+    function mdUpdateDirty () {
+      const dot = document.querySelector('#md-dirty')
+      if (dot) dot.hidden = !mdDirty()
+    }
+    function mdCloseMenus () {
+      for (const menu of document.querySelectorAll('#md-toolbar .md-menu[open]')) menu.removeAttribute('open')
+    }
+    function mdTouch () {
+      render()
+      mdUpdateDirty()
+      mdPersist()
+    }
+    function mdReplace (from, to, text, selFrom, selTo) {
+      const value = input.value
+      input.value = value.slice(0, from) + text + value.slice(to)
+      const start = selFrom === undefined ? from + text.length : selFrom
+      const end = selTo === undefined ? start : selTo
+      input.focus()
+      input.setSelectionRange(start, end)
+      mdTouch()
+    }
+    function mdLineRange () {
+      const text = input.value
+      const start = input.selectionStart
+      const end = input.selectionEnd
+      const lineStart = text.lastIndexOf('\n', Math.max(0, start - 1)) + 1
+      let lineEnd = text.indexOf('\n', end)
+      if (lineEnd === -1) lineEnd = text.length
+      return { text, start, end, lineStart, lineEnd, block: text.slice(lineStart, lineEnd) }
+    }
+    function mdWrapInline (kind) {
+      const marks = {
+        bold: ['**', '**', '加粗文本'],
+        italic: ['*', '*', '斜体文本'],
+        strike: ['~~', '~~', '删除文本'],
+        code: ['`', '`', 'code']
+      }
+      const spec = marks[kind]
+      if (!spec) return
+      const [before, after, placeholder] = spec
+      const { start, end } = { start: input.selectionStart, end: input.selectionEnd }
+      const selected = input.value.slice(start, end)
+      const outerBefore = input.value.slice(Math.max(0, start - before.length), start)
+      const outerAfter = input.value.slice(end, end + after.length)
+      if (selected && outerBefore === before && outerAfter === after) {
+        mdReplace(start - before.length, end + after.length, selected)
+        return
+      }
+      const body = selected || placeholder
+      mdReplace(start, end, before + body + after, start + before.length, start + before.length + body.length)
+    }
+    function mdHeading (level) {
+      const { lineStart, lineEnd, block } = mdLineRange()
+      const prefix = '#'.repeat(level) + ' '
+      const lines = block.split('\n')
+      const all = lines.every((line) => line.startsWith(prefix))
+      const next = lines.map((line) => {
+        const stripped = line.replace(/^#{1,6}\s+/, '')
+        return all ? stripped : prefix + stripped
+      }).join('\n')
+      mdReplace(lineStart, lineEnd, next, lineStart, lineStart + next.length)
+    }
+    function mdLinePrefix (kind) {
+      const { lineStart, lineEnd, block } = mdLineRange()
+      const lines = block.split('\n')
+      let next
+      if (kind === 'ol') {
+        const all = lines.every((line) => /^\d+\.\s/.test(line))
+        next = lines.map((line, i) => (all ? line.replace(/^\d+\.\s/, '') : `${i + 1}. ${line.replace(/^\d+\.\s/, '')}`)).join('\n')
+      } else {
+        const prefix = { ul: '- ', task: '- [ ] ', quote: '> ' }[kind]
+        if (!prefix) return
+        const all = lines.every((line) => line.startsWith(prefix))
+        next = lines.map((line) => (all ? line.slice(prefix.length) : prefix + line)).join('\n')
+      }
+      mdReplace(lineStart, lineEnd, next, lineStart, lineStart + next.length)
+    }
+    function mdInsertBlock (kind) {
+      const NL = String.fromCharCode(10)
+      const pad = (n) => String(n).padStart(2, '0')
+      const now = new Date()
+      const stamp = {
+        date: `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`,
+        time: `${pad(now.getHours())}:${pad(now.getMinutes())}`
+      }
+      const start = input.selectionStart
+      if (kind === 'date' || kind === 'time') {
+        mdReplace(start, input.selectionEnd, stamp[kind])
+        return
+      }
+      const blocks = {
+        code: ['```', '', '```'].join(NL),
+        hr: ['', '---', ''].join(NL),
+        table: ['', '| 列 1 | 列 2 |', '| --- | --- |', '| 内容 | 内容 |', ''].join(NL),
+        details: ['', '<details>', '<summary>标题</summary>', '', '内容', '', '</details>', ''].join(NL)
+      }
+      const text = blocks[kind]
+      if (!text) return
+      const insertAt = input.value.slice(0, start).endsWith(NL) ? start : start
+      mdReplace(insertAt, input.selectionEnd, text)
+    }
+    function mdClearMarks () {
+      const { start, end } = { start: input.selectionStart, end: input.selectionEnd }
+      const hasSelection = end > start
+      const value = input.value
+      const from = hasSelection ? start : 0
+      const to = hasSelection ? end : value.length
+      const cleaned = value.slice(from, to).replace(/(\*\*|~~|`|\*)/g, '')
+      mdReplace(from, to, cleaned)
+    }
+    function mdInsertLink () {
+      const start = input.selectionStart
+      const end = input.selectionEnd
+      const label = input.value.slice(start, end) || tr('md.linkLabel', '链接文字')
+      const text = `[${label}](https://)`
+      const urlFrom = start + label.length + 3
+      mdReplace(start, end, text, urlFrom, urlFrom + 8)
+    }
+
+    const mdActions = {
+      'data-md-inline': (value) => mdWrapInline(value),
+      'data-md-heading': (value) => mdHeading(Number(value)),
+      'data-md-line': (value) => mdLinePrefix(value),
+      'data-md-block': (value) => mdInsertBlock(value),
+      'data-md-clear': () => mdClearMarks()
+    }
+    on('#md-toolbar', 'click', (event) => {
+      const button = event.target.closest('button[data-md-inline], button[data-md-heading], button[data-md-line], button[data-md-block], button[data-md-clear]')
+      if (!button) return
+      event.preventDefault()
+      for (const [attr, run] of Object.entries(mdActions)) {
+        const value = button.getAttribute(attr)
+        if (value !== null) { run(value); break }
+      }
+      mdCloseMenus()
+    })
+    on('#md-toolbar', 'keydown', (event) => { if (event.key === 'Escape') mdCloseMenus() })
+    on('#md-tb-image', 'click', () => { pickAndInsertImage() })
+    on('#md-tb-link', 'click', () => mdInsertLink())
+    on('#md-tb-save', 'click', () => { saveMarkdown(false) })
 
     render()
     return render

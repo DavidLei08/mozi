@@ -264,7 +264,7 @@
       }
     }
 
-    $('#np-image').addEventListener('click', async () => {
+    async function pickAndInsertNotepadImage () {
       let files = []
       try {
         files = await api.files.pick()
@@ -274,8 +274,8 @@
       }
       if (!files || !files[0]) return
       await insertImageFromDisk(files[0].path, files[0].name)
-    })
-    $('#np-tb-image').addEventListener('click', () => $('#np-image').click())
+    }
+    $('#np-tb-image').addEventListener('click', () => { pickAndInsertNotepadImage() })
 
     // paste or drop an image straight into the note
     function insertBlob (file, label) {
