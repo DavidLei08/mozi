@@ -895,7 +895,7 @@ async function runSmoke (win, app) {
       })
     })()`))
     check('markdown header actions are icon buttons with tooltips',
-      mdHeader.count === 7 && mdHeader.allIcons && mdHeader.allTitled && mdHeader.noText,
+      mdHeader.count === 6 && mdHeader.allIcons && mdHeader.allTitled && mdHeader.noText,
       JSON.stringify({ count: mdHeader.count, icons: mdHeader.allIcons, titles: mdHeader.allTitled, noText: mdHeader.noText }))
     check('save and image actions live only in the editor toolbar',
       mdHeader.saveControls === 1 && mdHeader.imageControls === 1 && mdHeader.notepadImageControls === 1,
@@ -903,6 +903,67 @@ async function runSmoke (win, app) {
     check('markdown tooltips are translated',
       mdHeader.titles.includes('另存为…') && mdHeader.titles.includes('打开 Markdown 文件…') && !mdHeader.titles.includes('插入图片'),
       JSON.stringify(mdHeader.titles))
+
+    // the toolbar matches the reference: icon+label menus, a language list,
+    // an icon save with the unsaved dot, history and a more menu
+    const mdTbShape = JSON.parse(await step(`(() => {
+      const bar = document.querySelector('#md-toolbar')
+      const menus = [...bar.querySelectorAll('.md-menu')]
+      return JSON.stringify({
+        marks: [...bar.querySelectorAll('[data-md-inline], [data-md-heading]')].length,
+        menuKeys: menus.map((m) => m.id.replace('md-menu-', '')),
+        menuLabels: menus.map((m) => m.querySelector('summary span').textContent),
+        menuIcons: menus.every((m) => !!m.querySelector('summary svg')),
+        languages: bar.querySelectorAll('[data-md-lang]').length,
+        saveIsIcon: !!document.querySelector('#md-tb-save svg') && document.querySelector('#md-tb-save').textContent.trim() === '',
+        dot: !!document.querySelector('#md-dirty'),
+        more: !!document.querySelector('[data-md-more]')
+      })
+    })()`))
+    check('toolbar matches the reference layout',
+      mdTbShape.marks >= 4 && mdTbShape.menuKeys.join(',') === 'lists,code,format,insert,more' &&
+      mdTbShape.menuIcons && mdTbShape.languages >= 20 && mdTbShape.saveIsIcon &&
+      mdTbShape.dot && mdTbShape.more,
+      JSON.stringify(mdTbShape))
+    check('menu labels are translated',
+      mdTbShape.menuLabels.join(',') === '列表,代码块,格式,插入,更多', mdTbShape.menuLabels.join(','))
+
+    // a language entry produces a fenced block with that language
+    const mdLang = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const NL = String.fromCharCode(10)
+      const input = document.querySelector('#md-in')
+      input.value = 'let a = 1'
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      input.setSelectionRange(0, input.value.length)
+      document.querySelector('#md-toolbar [data-md-lang="javascript"]').click()
+      await wait(400)
+      return JSON.stringify({ value: input.value, fenced: /<pre>/.test(document.querySelector('#md-preview').innerHTML) })
+    })()`))
+    check('language menu inserts a fenced code block',
+      mdLang.value.startsWith('```javascript') && mdLang.value.endsWith('```') && mdLang.fenced, JSON.stringify(mdLang))
+
+    // ⌘S must save the document, not jump to the request tool
+    const mdShortcut = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const input = document.querySelector('#md-in')
+      input.value = '# 快捷键保存测试'
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      await wait(500)
+      const before = document.querySelector('.view.is-active').dataset.view
+      // the native menu accelerator routes through this dispatcher
+      window.__moziSmokeFireMenu && window.__moziSmokeFireMenu('save-request')
+      await wait(400)
+      return JSON.stringify({
+        before,
+        after: document.querySelector('.view.is-active').dataset.view,
+        modalOpen: !document.querySelector('#modal').classList.contains('hidden'),
+        draft: window.__moziData.mdDoc().text
+      })
+    })()`))
+    check('⌘S in markdown saves instead of opening the request dialog',
+      mdShortcut.before === 'markdown' && mdShortcut.after === 'markdown' && !mdShortcut.modalOpen,
+      JSON.stringify(mdShortcut))
 
     check('markdown toolbar exposes quick actions',
       mdTools.buttons >= 10 && mdTools.menus >= 4 && mdTools.hasSave && mdTools.hasImage && mdTools.hasLink,
@@ -920,7 +981,7 @@ async function runSmoke (win, app) {
       const input = document.querySelector('#md-in')
       input.value = ['## 发布检查清单', '', '- [ ] 单元测试', '- [ ] 端到端测试', '', '| 项 | 状态 |', '| --- | --- |', '| 请求工具 | 通过 |', '', '> 备注：**加粗**与 ' + String.fromCharCode(96) + 'code' + String.fromCharCode(96)].join(NL)
       input.dispatchEvent(new Event('input', { bubbles: true }))
-      const menu = document.querySelector('#md-toolbar .md-menu')
+      const menu = document.querySelector('#md-menu-code')
       if (menu) menu.setAttribute('open', '')
       return true
     })()`)

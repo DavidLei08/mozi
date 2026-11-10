@@ -24,6 +24,13 @@
     toast(`${label || '内容'}已复制`)
   }
 
+  function mk (tag, cls, text) {
+    const node = document.createElement(tag)
+    if (cls) node.className = cls
+    if (text !== undefined && text !== null) node.textContent = String(text)
+    return node
+  }
+
   function debounce (fn, ms) {
     let timer = null
     return (...args) => {
@@ -699,12 +706,11 @@ flowchart LR
     }
     on('#md-save-as', 'click', () => { saveMarkdown(true) })
 
-    window.addEventListener('keydown', (event) => {
-      if (!(event.metaKey || event.ctrlKey) || event.key.toLowerCase() !== 's') return
-      if (document.querySelector('.view.is-active')?.dataset.view !== 'markdown') return
-      event.preventDefault()
-      saveMarkdown(false)
-    })
+    // The native menu owns ⌘S, so claim it for this view rather than listening
+    // for the key (a page listener never sees it once the accelerator fires).
+    if (typeof window.__moziClaimMenu === 'function') {
+      window.__moziClaimMenu('markdown', 'save-request', () => { saveMarkdown(false) })
+    }
 
     input.addEventListener('input', () => { mdUpdateDirty(); mdPersist() })
     input.addEventListener('input', debounce(render, 100))
@@ -749,7 +755,6 @@ flowchart LR
     })
 
     $('#md-sample').addEventListener('click', () => { input.value = SAMPLE_MD; render(); toast(tr('msg.sampleInserted', '已插入示例')) })
-    $('#md-clear').addEventListener('click', () => { input.value = ''; render() })
     $('#md-copy-html').addEventListener('click', () => {
       copy(preview.innerHTML, 'HTML')
     })
@@ -905,7 +910,27 @@ ${preview.innerHTML}
       mdReplace(start, end, text, urlFrom, urlFrom + 8)
     }
 
+    function mdCodeBlock (language) {
+      const NL = String.fromCharCode(10)
+      const start = input.selectionStart
+      const end = input.selectionEnd
+      const selected = input.value.slice(start, end)
+      const fence = '```' + (language || '') + NL + (selected || '') + NL + '```'
+      mdReplace(start, end, fence)
+    }
+
+    function mdMore (kind) {
+      if (kind === 'copy-md') { copy(input.value, 'Markdown'); return }
+      if (kind === 'base-dir') {
+        const label = document.querySelector('#md-base')
+        toast(label && label.textContent ? `${tr('md.baseDirHint', '图片相对路径按此目录解析')}：${label.textContent}` : tr('md.noBaseDir', '还没有设置图片基准目录，打开本地 .md 文件后会自动设置'))
+        return
+      }
+    }
+
     const mdActions = {
+      'data-md-lang': (value) => mdCodeBlock(value),
+      'data-md-more': (value) => mdMore(value),
       'data-md-inline': (value) => mdWrapInline(value),
       'data-md-heading': (value) => mdHeading(Number(value)),
       'data-md-line': (value) => mdLinePrefix(value),
@@ -913,7 +938,7 @@ ${preview.innerHTML}
       'data-md-clear': () => mdClearMarks()
     }
     on('#md-toolbar', 'click', (event) => {
-      const button = event.target.closest('button[data-md-inline], button[data-md-heading], button[data-md-line], button[data-md-block], button[data-md-clear]')
+      const button = event.target.closest('button[data-md-inline], button[data-md-heading], button[data-md-line], button[data-md-block], button[data-md-clear], button[data-md-lang], button[data-md-more]')
       if (!button) return
       event.preventDefault()
       for (const [attr, run] of Object.entries(mdActions)) {

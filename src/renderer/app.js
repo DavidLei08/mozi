@@ -1500,6 +1500,29 @@
     return window.Curl.build(tab.request, payload.url, payload.headers, tab.request.body && tab.request.body.type !== 'none' ? { present: true } : null)
   }
 
+  // ---------------------------------------------------------------- menu actions
+  // Native menu accelerators (⌘S / ⌘N / ⌘I) fire before any page listener, so a
+  // tool that owns the current view must claim the action here. Without this,
+  // pressing ⌘S in the markdown editor jumped to the request tool and opened the
+  // save-request dialog instead of saving the document.
+  const menuClaims = []
+  window.__moziClaimMenu = (view, action, run) => {
+    menuClaims.push({ view, action, run })
+  }
+  // exposed so the smoke harness can drive the same path the menu accelerator uses
+  window.__moziSmokeFireMenu = (action) => runMenuAction(action)
+  function runMenuAction (action) {
+    const view = state.ui.view
+    for (const claim of menuClaims) {
+      if (claim.action !== action) continue
+      if (claim.view !== 'any' && claim.view !== view) continue
+      if (claim.run(view) !== false) return
+    }
+    if (action === 'new-request') { showView('http'); newTab() }
+    else if (action === 'import-curl') { showView('http'); importCurlModal() }
+    else if (action === 'save-request') { showView('http'); saveRequestModal() }
+  }
+
   // ---------------------------------------------------------------- tool bridge
   // tools3.js owns the notepad/todo UI; their data lives in this state object so
   // it is persisted with everything else
@@ -1893,9 +1916,9 @@
 
     api.menu.onHome(() => showView('home'))
     api.menu.onTool((name) => showView(name))
-    api.menu.onNewRequest(() => { showView('http'); newTab() })
-    api.menu.onImportCurl(() => { showView('http'); importCurlModal() })
-    api.menu.onSaveRequest(() => { showView('http'); saveRequestModal() })
+    api.menu.onNewRequest(() => runMenuAction('new-request'))
+    api.menu.onImportCurl(() => runMenuAction('import-curl'))
+    api.menu.onSaveRequest(() => runMenuAction('save-request'))
 
     api.ws.onEvent(onWsEvent)
     api.sse.onEvent(onSseEvent)
