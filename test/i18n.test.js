@@ -25,7 +25,7 @@ const ALLOWED_IN_ZH = new Set([
   'Electron', 'Bearer', 'Basic', 'Token', 'npm', 'PDF', 'Word', 'Unix', 'UTC', 'ISO', 'macOS',
   'Windows', 'Unicode', 'Content-Type', 'Set-Cookie', 'Data', 'Crypto', 'Esc', 'Enter', 'Ctrl',
   'text/plain', 'application/json', 'Data URL', 'JSON5', 'QS', 'v4/v7',
-  'token', 'multipart', 'Cookie Jar', 'Cookie', 'md'
+  'token', 'multipart', 'Cookie Jar', 'Cookie', 'md', 'BMP', 'HEIC'
 ])
 
 const CJK = /[\u4e00-\u9fa5]/

@@ -558,6 +558,65 @@ async function runSmoke (win, app) {
     await visibleCheck('notepad')
     await capture(shot('-notepad'))
 
+    // ---- notepad images: real file through the real IPC, and a clipboard paste ----
+    const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
+    const noteImage = path.join(app.getPath('temp'), 'mozi-notepad-img.png')
+    await fsp.writeFile(noteImage, Buffer.from(PNG_B64, 'base64'))
+
+    // the file IPC used to reject with "mimeForPath is not defined", which made
+    // every picker-based image insert fail silently
+    const fileRead = JSON.parse(await step(`(async () => {
+      try {
+        const result = await window.api.files.readBase64(${JSON.stringify(noteImage)})
+        return JSON.stringify({ ok: !!result.ok, mime: result.mime || '', base64: (result.base64 || '').length, name: result.name || '' })
+      } catch (err) {
+        return JSON.stringify({ ok: false, threw: String(err && err.message ? err.message : err) })
+      }
+    })()`))
+    check('file IPC returns a mime and base64',
+      fileRead.ok && fileRead.mime === 'image/png' && fileRead.base64 > 20, JSON.stringify(fileRead))
+
+    const diskInsert = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const activeNote = () => {
+        const notes = window.__moziData.notes()
+        return notes.find((n) => n.id === window.__moziData.notesUI().activeId) || notes[0] || {}
+      }
+      const ok = await window.__moziNotepadInsertFromFile(${JSON.stringify(noteImage)})
+      await wait(700)
+      return JSON.stringify({
+        returned: ok,
+        domHasImg: document.querySelector('#np-editor').innerHTML.includes('data:image/png'),
+        storeHasImg: String(activeNote().html).includes('data:image/png'),
+        toast: document.querySelector('#toast').textContent
+      })
+    })()`))
+    check('notepad inserts an image picked from disk',
+      diskInsert.returned === true && diskInsert.domHasImg && diskInsert.storeHasImg, JSON.stringify(diskInsert))
+
+    const pasteInsert = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const editor = document.querySelector('#np-editor')
+      const before = editor.innerHTML.length
+      const bytes = Uint8Array.from(atob(${JSON.stringify(PNG_B64)}), (c) => c.charCodeAt(0))
+      const dt = new DataTransfer()
+      dt.items.add(new File([bytes], 'pasted.png', { type: 'image/png' }))
+      const event = new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })
+      editor.dispatchEvent(event)
+      await wait(800)
+      const notes = window.__moziData.notes()
+      const active = notes.find((n) => n.id === window.__moziData.notesUI().activeId) || notes[0] || {}
+      return JSON.stringify({
+        prevented: event.defaultPrevented,
+        grew: editor.innerHTML.length > before,
+        storeHasImg: String(active.html).includes('data:image/png'),
+        errors: (window.__errors || []).slice(-3)
+      })
+    })()`))
+    check('notepad inserts a pasted image',
+      pasteInsert.prevented && pasteInsert.grew && pasteInsert.storeHasImg, JSON.stringify(pasteInsert))
+    await fsp.unlink(noteImage).catch(() => {})
+
     // ---- todos: overdue, reschedule, completion and monthly archive ----
     const todoResult = JSON.parse(await step(`(async () => {
       const wait = (ms) => new Promise(r => setTimeout(r, ms))

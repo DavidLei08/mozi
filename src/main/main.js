@@ -190,6 +190,24 @@ function registerIpc () {
     return { ok: true, path: result.filePaths[0], content }
   })
 
+  // Extension -> mime map for the file IPC. mimeForPath used to be called but
+  // never defined, so every read-base64 call rejected with a ReferenceError and
+  // the picker-based image inserts silently did nothing.
+  const MIME_BY_EXT = {
+    png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', jfif: 'image/jpeg',
+    gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp', svg: 'image/svg+xml',
+    ico: 'image/x-icon', avif: 'image/avif', heic: 'image/heic', heif: 'image/heif',
+    tif: 'image/tiff', tiff: 'image/tiff', pdf: 'application/pdf', txt: 'text/plain',
+    md: 'text/markdown', json: 'application/json', csv: 'text/csv', xml: 'application/xml',
+    html: 'text/html', htm: 'text/html', yml: 'text/yaml', yaml: 'text/yaml',
+    zip: 'application/zip', gz: 'application/gzip'
+  }
+
+  function mimeForPath (filePath) {
+    const ext = path.extname(String(filePath || '')).slice(1).toLowerCase()
+    return MIME_BY_EXT[ext] || 'application/octet-stream'
+  }
+
   ipcMain.handle('files:read-base64', async (_event, filePath) => {
     const p = String(filePath || '')
     if (!p) return { ok: false, error: 'No file path' }

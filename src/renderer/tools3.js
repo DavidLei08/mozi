@@ -194,27 +194,100 @@
       persist()
     }
 
+    // Images come from three places: the file picker, a clipboard blob, or a path
+    // copied in Finder. All of them end up here so failures are always reported
+    // instead of silently doing nothing.
+    const IMAGE_EXT_MIME = {
+      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', jfif: 'image/jpeg',
+      gif: 'image/gif', webp: 'image/webp', bmp: 'image/bmp', svg: 'image/svg+xml',
+      ico: 'image/x-icon', avif: 'image/avif', tif: 'image/tiff', tiff: 'image/tiff'
+    }
+    function imageMimeFor (mime, filePath) {
+      if (mime && /^image\//i.test(mime) && mime !== 'image/heic' && mime !== 'image/heif') return mime
+      const ext = String(filePath || '').toLowerCase().split('.').pop()
+      return IMAGE_EXT_MIME[ext] || ''
+    }
+    function localPathFromText (text) {
+      const raw = String(text || '').trim().split(/[\r\n]/)[0]
+      if (!raw) return ''
+      if (raw.startsWith('file://')) {
+        try { return decodeURIComponent(new URL(raw).pathname) } catch { return '' }
+      }
+      return raw.startsWith('/') ? raw : ''
+    }
+    async function insertImageFromDisk (filePath, label) {
+      if (!filePath) return false
+      try {
+        const result = await api.files.readBase64(filePath)
+        if (!result || !result.ok) {
+          toast(`${tr('img.readFailed', '读取图片失败')}: ${(result && result.error) || filePath}`)
+          return false
+        }
+        const mime = imageMimeFor(result.mime, filePath)
+        if (!mime) {
+          toast(tr('img.unsupported', '不支持的图片格式（请用 PNG / JPEG / GIF / WebP / BMP）'))
+          return false
+        }
+        insertImage(`data:${mime};base64,${result.base64}`, label || result.name || '')
+        toast(tr('img.inserted', '图片已插入'))
+        return true
+      } catch (err) {
+        toast(`${tr('img.readFailed', '读取图片失败')}: ${err && err.message ? err.message : err}`)
+        return false
+      }
+    }
+
     $('#np-image').addEventListener('click', async () => {
-      const files = await api.files.pick()
+      let files = []
+      try {
+        files = await api.files.pick()
+      } catch (err) {
+        toast(`${tr('img.readFailed', '读取图片失败')}: ${err && err.message ? err.message : err}`)
+        return
+      }
       if (!files || !files[0]) return
-      const result = await api.files.readBase64(files[0].path)
-      if (!result || !result.ok) { toast(result && result.error ? result.error : tr('img.pickPrompt', '请选择图片文件')); return }
-      insertImage(`data:${result.mime};base64,${result.base64}`, files[0].name)
-      toast(tr('img.inserted', '图片已插入'))
+      await insertImageFromDisk(files[0].path, files[0].name)
     })
     $('#np-tb-image').addEventListener('click', () => $('#np-image').click())
 
     // paste or drop an image straight into the note
+    function insertBlob (file, label) {
+      return new Promise((resolve) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          insertImage(String(reader.result), label)
+          toast(tr('img.inserted', '图片已插入'))
+          resolve(true)
+        }
+        reader.onerror = () => { toast(tr('img.readFailed', '读取图片失败')); resolve(false) }
+        reader.readAsDataURL(file)
+      })
+    }
+
     editor.addEventListener('paste', async (event) => {
-      const items = event.clipboardData ? Array.from(event.clipboardData.items || []) : []
-      const image = items.find((item) => item.type && item.type.startsWith('image/'))
-      if (!image) return
-      event.preventDefault()
-      const file = image.getAsFile()
-      if (!file) return
-      const reader = new FileReader()
-      reader.onload = () => { insertImage(String(reader.result), tr('np.pasted', '粘贴的图片')); toast(tr('img.inserted', '图片已插入')) }
-      reader.readAsDataURL(file)
+      const clip = event.clipboardData
+      if (!clip) return
+      // 1) a real image on the clipboard (screenshot, "copy image" in a browser)
+      const items = Array.from(clip.items || [])
+      const imageItem = items.find((item) => item.type && item.type.startsWith('image/'))
+      const blob = imageItem ? imageItem.getAsFile() : (clip.files && clip.files[0] ? clip.files[0] : null)
+      if (blob && blob.type && blob.type.startsWith('image/')) {
+        event.preventDefault()
+        await insertBlob(blob, tr('np.pasted', '粘贴的图片'))
+        return
+      }
+      // 2) a file copied in Finder: the clipboard carries its path, not the bitmap
+      const asText = clip.getData('text/uri-list') || clip.getData('text/plain')
+      const localPath = localPathFromText(asText)
+      if (localPath && /\.(png|jpe?g|gif|webp|bmp|svg|tiff?|avif|ico)$/i.test(localPath)) {
+        event.preventDefault()
+        await insertImageFromDisk(localPath)
+        return
+      }
+      if (/^image\//i.test(String(clip.types ? Array.from(clip.types).join(',') : ''))) {
+        event.preventDefault()
+        toast(tr('img.unsupported', '不支持的图片格式（请用 PNG / JPEG / GIF / WebP / BMP）'))
+      }
     })
     editor.addEventListener('dragover', (event) => { event.preventDefault() })
     editor.addEventListener('drop', async (event) => {
@@ -260,6 +333,8 @@
     })
 
     window.__moziNotepadRender = () => select(active().id)
+    // test seam: the picker's insert path without opening a native dialog
+    window.__moziNotepadInsertFromFile = (filePath) => insertImageFromDisk(filePath)
     select(active().id)
   }
 
