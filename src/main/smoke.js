@@ -162,14 +162,14 @@ async function runSmoke (win, app) {
     console.log('HOME_DIAG', JSON.stringify(home))
     check('app title is Mozi', home.title === 'Mozi', home.title)
     check('home is the entry view', home.active === 'home', home.active)
-    check('eleven tool cards', home.cards === 11, String(home.cards))
-    check('cards named correctly', ['请求工具', '字符转义', 'JSON 格式化', 'Base64 工具箱', 'Markdown 编辑器', 'JWT 解析', '正则测试', 'cURL 转代码', '哈希摘要', '时间戳转换', 'UUID / 密码生成'].every((n) => home.names.includes(n)), home.names.join(','))
+    check('thirteen tool cards', home.cards === 13, String(home.cards))
+    check('cards named correctly', ['请求工具', '字符转义', 'JSON 格式化', 'Base64 工具箱', 'Markdown 编辑器', 'JWT 解析', '正则测试', 'cURL 转代码', '哈希摘要', '时间戳转换', 'UUID / 密码生成', '记事本', '待办任务'].every((n) => home.names.includes(n)), home.names.join(','))
     const groupCount = JSON.parse(await step(`JSON.stringify(document.querySelectorAll('.tool-group').length)`))
-    check('home is grouped', groupCount === 3, String(groupCount))
+    check('home is grouped', groupCount === 4, String(groupCount))
     const freshStrip = JSON.parse(await step(`JSON.stringify({ hasStrip: !!document.querySelector('.tool-group.is-recent') })`))
     check('fresh profile has no recent strip', !freshStrip.hasStrip)
     const icons = JSON.parse(await step(`JSON.stringify([...document.querySelectorAll('.tool-icon')].map(e => e.textContent))`))
-    check('every tool icon renders', icons.length === 11 && icons.every((i) => i && i.trim().length > 0 && !/\n/.test(i)), JSON.stringify(icons))
+    check('every tool icon renders', icons.length === 13 && icons.every((i) => i && i.trim().length > 0 && !/\n/.test(i)), JSON.stringify(icons))
     const saveBtn = JSON.parse(await step(`JSON.stringify({
       exists: !!document.querySelector('#btn-save'),
       label: (document.querySelector('#btn-save') || {}).textContent || '',
@@ -491,13 +491,160 @@ async function runSmoke (win, app) {
       zhAfter.headings.includes('开发') && zhAfter.headings.includes('编码与转换'),
       JSON.stringify({ en: enUi.headings, zh: zhAfter.headings }))
 
+    // ============ NOTEPAD + TODOS ============
+    const dayMs = 86400000
+    const isoDay = (offsetDays) => {
+      const d = new Date()
+      d.setHours(12, 0, 0, 0)
+      d.setDate(d.getDate() + offsetDays)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+    const monthOffset = (offset) => {
+      const d = new Date()
+      d.setHours(12, 0, 0, 0)
+      d.setDate(1)
+      d.setMonth(d.getMonth() + offset)
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-15`
+    }
+    const pad = (n) => String(n).padStart(2, '0')
+    const monthKeyOf = (iso) => iso.slice(0, 7)
+    const prevMonthLabel = (() => {
+      const d = new Date()
+      d.setDate(1)
+      d.setMonth(d.getMonth() - 1)
+      return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月`
+    })()
+
+    // ---- notepad: rich text with an image, and no script survival ----
+    const noteResult = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      document.querySelector('.tool-card[data-open="notepad"]').click()
+      await wait(350)
+      const editor = document.querySelector('#np-editor')
+      editor.innerHTML = '<p>会议记录 <strong>重点</strong></p><script>alert(1)</script><img src="data:image/png;base64,iVBORw0KGgo=">'
+      editor.dispatchEvent(new Event('input', { bubbles: true }))
+      await wait(700)
+      const notes = window.__moziData.notes()
+      const activeId = window.__moziData.notesUI().activeId
+      const active = notes.find((n) => n.id === activeId) || notes[0] || {}
+      return JSON.stringify({
+        count: notes.length,
+        title: active.title || '',
+        hasBold: String(active.html).includes('<strong>重点</strong>'),
+        scriptGone: !/<script/i.test(String(active.html)),
+        imageKept: String(active.html).includes('data:image/png'),
+        listItems: document.querySelectorAll('#np-list .np-item').length,
+        shownTitle: document.querySelector('#np-title').textContent,
+        meta: document.querySelector('#np-meta').textContent
+      })
+    })()`))
+    check('notepad stores rich text', noteResult.count >= 1 && noteResult.hasBold && noteResult.title.includes('会议记录'), JSON.stringify(noteResult))
+    check('notepad strips scripts but keeps images', noteResult.scriptGone && noteResult.imageKept, noteResult.imageKept ? 'image kept' : 'image lost')
+    const toolbar = JSON.parse(await step(`(() => {
+      const bar = document.querySelector('#np-toolbar')
+      const buttons = [...bar.querySelectorAll('.np-btn')]
+      const tops = [...new Set(buttons.map((b) => Math.round(b.getBoundingClientRect().top)))]
+      return JSON.stringify({
+        count: buttons.length,
+        rows: tops.length,
+        widest: Math.round(Math.max(...buttons.map((b) => b.getBoundingClientRect().width))),
+        barWidth: Math.round(bar.getBoundingClientRect().width)
+      })
+    })()`))
+    check('notepad toolbar lays buttons out in a row',
+      toolbar.count >= 12 && toolbar.rows <= 3 && toolbar.widest < toolbar.barWidth / 2,
+      JSON.stringify(toolbar))
+    check('notepad lists the note with its title', noteResult.listItems >= 1 && noteResult.shownTitle.includes('会议记录'), noteResult.shownTitle)
+    await visibleCheck('notepad')
+    await capture(shot('-notepad'))
+
+    // ---- todos: overdue, reschedule, completion and monthly archive ----
+    const todoResult = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      let defaultDue = ''
+      const add = async (title, desc, due) => {
+        document.querySelector('#td-new').click()
+        await wait(180)
+        if (!defaultDue) defaultDue = document.querySelector('#td-due').value
+        document.querySelector('#td-title').value = title
+        document.querySelector('#td-desc').value = desc
+        document.querySelector('#td-due').value = due
+        document.querySelector('#td-submit').click()
+        await wait(320)
+      }
+      document.querySelector('.back-mark[data-back]').click()
+      await wait(250)
+      document.querySelector('.tool-card[data-open="todos"]').click()
+      await wait(350)
+      window.__moziSmokeTodosTop = Math.round(document.querySelector('#view-todos .tool-head').getBoundingClientRect().top)
+
+      await add('本周任务', '', ${JSON.stringify(isoDay(3))})
+      await add('逾期任务', '说明文字', ${JSON.stringify(isoDay(-2))})
+      await add('上月已完成', '', ${JSON.stringify(monthOffset(-1))})
+
+      const overdueRow = [...document.querySelectorAll('#td-overdue .td-row')].find((r) => r.textContent.includes('逾期任务'))
+      const overdueClass = !!overdueRow && overdueRow.classList.contains('is-overdue')
+      const overdueTitleColor = overdueRow ? getComputedStyle(overdueRow.querySelector('.td-row-title')).color : ''
+      const currentRow = [...document.querySelectorAll('#td-current .td-row')].find((r) => r.textContent.includes('本周任务'))
+      const currentTitleColor = currentRow ? getComputedStyle(currentRow.querySelector('.td-row-title')).color : ''
+      const statsText = document.querySelector('#td-stats').textContent
+      const badge = overdueRow ? overdueRow.querySelector('.td-badge').textContent : ''
+
+      // reschedule the overdue one into the future through its inline date input
+      let rescheduledIn = ''
+      if (overdueRow) {
+        const input = overdueRow.querySelector('.td-due')
+        input.value = ${JSON.stringify(isoDay(2))}
+        input.dispatchEvent(new Event('change', { bubbles: true }))
+        await wait(350)
+        rescheduledIn = [...document.querySelectorAll('#td-current .td-row')].some((r) => r.textContent.includes('逾期任务')) ? 'current' : 'missing'
+      }
+
+      // finish the past-month task: it must leave overdue and file itself away
+      const archiveCandidate = [...document.querySelectorAll('#td-overdue .td-row')].find((r) => r.textContent.includes('上月已完成'))
+      const startedInOverdue = !!archiveCandidate
+      if (archiveCandidate) { archiveCandidate.querySelector('.td-check').click(); await wait(400) }
+      document.querySelector('#td-archive-toggle').click()
+      await wait(350)
+      const archiveText = document.querySelector('#td-archive').textContent
+      const archiveMonths = document.querySelectorAll('#td-archive .td-month').length
+      const archivedStillOverdue = [...document.querySelectorAll('#td-overdue .td-row')].some((r) => r.textContent.includes('上月已完成'))
+
+      // complete the remaining open task and check the strikethrough style
+      const openRow = [...document.querySelectorAll('#td-current .td-row')].find((r) => r.textContent.includes('本周任务'))
+      if (openRow) { openRow.querySelector('.td-check').click(); await wait(400) }
+      const doneRow = [...document.querySelectorAll('#td-current .td-row')].find((r) => r.textContent.includes('本周任务'))
+      const doneClass = !!doneRow && doneRow.classList.contains('is-done')
+      const doneText = doneRow ? getComputedStyle(doneRow.querySelector('.td-row-title')).textDecorationLine : ''
+
+      return JSON.stringify({
+        stored: window.__moziData.todos().length,
+        overdueClass, overdueTitleColor, currentTitleColor, defaultDue, statsText, badge,
+        rescheduledIn, startedInOverdue, archiveText: archiveText.slice(0, 80), archiveMonths, archivedStillOverdue,
+        doneClass, doneText
+      })
+    })()`))
+    check('todos default the due date to today', todoResult.defaultDue === isoDay(0), todoResult.defaultDue)
+    await visibleCheck('todos')
+    check('todo rows are created and counted', todoResult.stored === 3 && /全部\s*3/.test(todoResult.statsText.replace(/\s+/g, ' ')), todoResult.statsText)
+    check('an overdue todo is flagged and painted red',
+      todoResult.overdueClass && todoResult.overdueTitleColor !== todoResult.currentTitleColor && /逾期/.test(todoResult.badge),
+      JSON.stringify({ overdue: todoResult.overdueTitleColor, normal: todoResult.currentTitleColor, badge: todoResult.badge }))
+    check('rescheduling moves a todo out of overdue', todoResult.rescheduledIn === 'current', todoResult.rescheduledIn)
+    check('a finished past-month todo is archived by month',
+      todoResult.startedInOverdue && todoResult.archiveText.includes('上月已完成') && todoResult.archiveMonths >= 1 &&
+      todoResult.archiveText.includes(prevMonthLabel) && !todoResult.archivedStillOverdue,
+      JSON.stringify({ months: todoResult.archiveMonths, text: todoResult.archiveText }))
+    check('completing a todo marks it done', todoResult.doneClass && todoResult.doneText.includes('line-through'), JSON.stringify({ cls: todoResult.doneClass, deco: todoResult.doneText }))
+    await capture(shot('-todos'))
+
     // ============ UNIFIED BACK MARKS ============
     const backMarks = JSON.parse(await step(`JSON.stringify({
       count: document.querySelectorAll('.back-mark[data-back]').length,
       text: [...new Set([...document.querySelectorAll('.back-mark')].map(e => e.textContent))],
       noArrows: document.querySelectorAll('.back-btn').length
     })`))
-    check('every tool uses the icon back mark', backMarks.count === 10 && backMarks.text.join('') === 'M' && backMarks.noArrows === 0, JSON.stringify(backMarks))
+    check('every tool uses the icon back mark', backMarks.count === 12 && backMarks.text.join('') === 'M' && backMarks.noArrows === 0, JSON.stringify(backMarks))
 
     // ============ MARKDOWN OPEN LOCAL FILE ============
     const mdFile = path.join(app.getPath('temp'), 'mozi-smoke-open.md')
@@ -1265,7 +1412,7 @@ async function runSmoke (win, app) {
     })()`))
     check('home search filters tools', searchResult.filtered === 1 && searchResult.names[0] === '正则测试', `${searchResult.filtered}/${searchResult.names.join(',')}`)
     check('home search shows empty state', searchResult.empty)
-    check('home search restores list', searchResult.restored === 11, String(searchResult.restored))
+    check('home search restores list', searchResult.restored === 13, String(searchResult.restored))
     const recentClick = JSON.parse(await step(`(async () => {
       const wait = (ms) => new Promise(r => setTimeout(r, ms))
       document.querySelector('#toolSearch').value = ''
@@ -1310,7 +1457,7 @@ async function runSmoke (win, app) {
       return JSON.stringify({ active: document.querySelector('.view.is-active').dataset.view })
     })()`))
     check('Esc returns to toolbox', escHome.active === 'home', escHome.active)
-    check('toolbox has eleven tools', backHome.cards === 11, String(backHome.cards))
+    check('toolbox has thirteen tools', backHome.cards === 13, String(backHome.cards))
 
     clearTimeout(watchdog)
     if (failures.length) {

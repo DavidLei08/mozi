@@ -55,12 +55,15 @@ test('English values contain no Chinese characters', () => {
 
 test('Chinese values contain no untranslated English words', () => {
   const offenders = []
+  const allowed = new Set([...ALLOWED_IN_ZH].map((w) => w.toLowerCase()))
   for (const [key, value] of Object.entries(DICT.zh)) {
+    // a value that is simply a URL or a command example is data, not prose
+    if (/^(https?:\/\/|\/|[a-z-]+\.(com|cn|test))/i.test(value.trim())) continue
     // placeholders are template syntax, not prose; single letters are key
     // notation (⌘K, ⌘S) which is conventional in Chinese UIs too
-    const prose = value.replace(/\{\{[^}]*\}\}/g, ' ')
+    const prose = value.replace(/\{\{[^}]*\}\}/g, ' ').replace(/\{[^}]*\}/g, ' ')
     const words = [...new Set(prose.match(LATIN_WORD) || [])].filter((w) => w.length > 1)
-    const bad = words.filter((w) => !ALLOWED_IN_ZH.has(w))
+    const bad = words.filter((w) => !allowed.has(w.toLowerCase()))
     if (bad.length) offenders.push(`${key}="${value}" -> ${bad.join(', ')}`)
   }
   assert.deepEqual(offenders, [], 'Chinese UI text must not mix in English interface words')

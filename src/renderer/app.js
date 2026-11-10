@@ -10,6 +10,8 @@
   // ---------------------------------------------------------------- state
   const defaults = () => ({
     collections: [],
+    notes: [],
+    todos: [],
     cookies: [],
     history: [],
     environments: [{ id: uid(), name: 'Default', builtin: 'default', vars: [] }],
@@ -17,7 +19,12 @@
     settings: { historyLimit: 300, timeoutMs: 120000, theme: 'system', language: 'zh' },
     tabs: [],
     activeTabId: null,
-    ui: { view: 'home', toolQuery: '', recent: [], side: 'collections', reqTab: 'params', respTab: 'pretty', search: '', split: 52, collapsed: [] }
+    ui: {
+      view: 'home', toolQuery: '', recent: [], side: 'collections', reqTab: 'params',
+      respTab: 'pretty', search: '', split: 52, collapsed: [],
+      notepad: { activeId: null },
+      todos: { hideDone: false, archiveOpen: false }
+    }
   })
 
   let state = defaults()
@@ -1492,6 +1499,19 @@
     return window.Curl.build(tab.request, payload.url, payload.headers, tab.request.body && tab.request.body.type !== 'none' ? { present: true } : null)
   }
 
+  // ---------------------------------------------------------------- tool bridge
+  // tools3.js owns the notepad/todo UI; their data lives in this state object so
+  // it is persisted with everything else
+  window.__moziToast = toast
+  window.__moziData = {
+    notes: () => state.notes,
+    setNotes: (list) => { state.notes = Array.isArray(list) ? list : []; saveSoon() },
+    notesUI: () => state.ui.notepad || (state.ui.notepad = { activeId: null }),
+    todos: () => state.todos,
+    setTodos: (list) => { state.todos = Array.isArray(list) ? list : []; saveSoon() },
+    todosUI: () => state.ui.todos || (state.ui.todos = { hideDone: false, archiveOpen: false })
+  }
+
   // ---------------------------------------------------------------- language
   function applyLanguage (lang) {
     state.settings.language = lang
@@ -1548,6 +1568,12 @@
         { id: 'base64', name: 'Base64 工具箱', tone: 'amber', icon: '64', desc: '文本加解密 · 图片转 Base64 · Base64 转图片' },
         { id: 'hash', name: '哈希摘要', tone: 'green', icon: '#', desc: 'MD5 / SHA-1 / SHA-256 / SHA-512，文本与文件' },
         { id: 'timestamp', name: '时间戳转换', tone: 'pink', icon: 'Ts', desc: 'Unix 时间戳与日期互转、多时区对照、相对时间' }
+      ]
+    },
+    {
+      id: 'daily', title: '记录与任务', tools: [
+        { id: 'notepad', name: '记事本', tone: 'amber', icon: '✎', tag: '新', desc: '富文本笔记，支持加粗、标题、列表与插入图片' },
+        { id: 'todos', name: '待办任务', tone: 'pink', icon: '☑', tag: '新', desc: '主题 / 描述 / 预期完成时间，逾期标红，按月份归档' }
       ]
     },
     {
@@ -1641,6 +1667,10 @@
       renderAll()
     } else if (name === 'markdown' && typeof window.__moziRenderMarkdown === 'function') {
       window.__moziRenderMarkdown()
+    } else if (name === 'notepad' && typeof window.__moziNotepadRender === 'function') {
+      window.__moziNotepadRender()
+    } else if (name === 'todos' && typeof window.__moziTodosRender === 'function') {
+      window.__moziTodosRender()
     }
     saveSoon()
   }

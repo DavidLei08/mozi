@@ -767,7 +767,98 @@
       </div>
       <div class="tool-status"><span id="cg-status" class="muted small" data-i18n="codegen.status">粘贴 cURL，或从请求工具导入当前请求</span></div>
     </section>
+
+    <!-- ======================= NOTEPAD ======================= -->
+    <section class="view tool-view" id="view-notepad" data-view="notepad">
+      <header class="tool-head drag-region">
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)" data-i18n-title="nav.backHome">M</button>
+        <h2 data-i18n="tool.notepad.title">记事本</h2>
+        <div class="tool-head-actions">
+          <button class="btn-primary" id="np-new" data-i18n="np.new">新建笔记</button>
+          <button class="btn-secondary" id="np-image" data-i18n="np.insertImage">插入图片</button>
+          <button class="btn-secondary" id="np-export" data-i18n="np.export">导出 HTML</button>
+          <button class="btn-secondary" id="np-delete" data-i18n="np.delete">删除笔记</button>
+        </div>
+      </header>
+      <div class="tool-body md-body" data-split="x" data-split-key="tool.notepad">
+        <div class="pane">
+          <div class="pane-head">
+            <span data-i18n="np.list">笔记</span>
+            <span id="np-count" class="muted small"></span>
+          </div>
+          <div id="np-list" class="np-list"></div>
+        </div>
+        <div class="pane">
+          <div class="pane-head">
+            <span id="np-title" class="np-title" data-i18n="np.untitled">未命名</span>
+            <span id="np-meta" class="muted small"></span>
+          </div>
+          <div class="np-toolbar" id="np-toolbar">
+            <button class="np-btn" type="button" data-np-cmd="bold" title="加粗" data-i18n-title="np.bold"><b>B</b></button>
+            <button class="np-btn" type="button" data-np-cmd="italic" title="斜体" data-i18n-title="np.italic"><i>I</i></button>
+            <button class="np-btn" type="button" data-np-cmd="underline" title="下划线" data-i18n-title="np.underline"><u>U</u></button>
+            <button class="np-btn" type="button" data-np-cmd="strikeThrough" title="删除线" data-i18n-title="np.strike"><s>S</s></button>
+            <span class="np-sep"></span>
+            <button class="np-btn" type="button" data-np-block="h1" title="大标题" data-i18n-title="np.h1">H1</button>
+            <button class="np-btn" type="button" data-np-block="h2" title="小标题" data-i18n-title="np.h2">H2</button>
+            <button class="np-btn" type="button" data-np-block="p" title="正文" data-i18n-title="np.paragraph">¶</button>
+            <span class="np-sep"></span>
+            <button class="np-btn" type="button" data-np-cmd="insertUnorderedList" title="无序列表" data-i18n-title="np.bullets">•</button>
+            <button class="np-btn" type="button" data-np-cmd="insertOrderedList" title="有序列表" data-i18n-title="np.numbered">1.</button>
+            <button class="np-btn" type="button" data-np-block="blockquote" title="引用" data-i18n-title="np.quote">❝</button>
+            <button class="np-btn" type="button" data-np-block="pre" title="代码块" data-i18n-title="np.code">&lt;/&gt;</button>
+            <span class="np-sep"></span>
+            <button class="np-btn" type="button" data-np-cmd="createLink" title="链接" data-i18n-title="np.link">🔗</button>
+            <button class="np-btn" type="button" id="np-tb-image" title="插入图片" data-i18n-title="np.insertImage">🖼</button>
+            <button class="np-btn" type="button" data-np-cmd="removeFormat" title="清除格式" data-i18n-title="np.clearFormat">⌫</button>
+          </div>
+          <div id="np-editor" class="np-editor" contenteditable="true" spellcheck="false"
+               data-i18n-placeholder="np.placeholder"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======================= TODOS ======================= -->
+    <section class="view tool-view" id="view-todos" data-view="todos">
+      <header class="tool-head drag-region">
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)" data-i18n-title="nav.backHome">M</button>
+        <h2 data-i18n="tool.todos.title">待办任务</h2>
+        <div class="tool-head-actions">
+          <button class="btn-primary" id="td-new" data-i18n="td.new">新建待办</button>
+          <label class="chk"><input type="checkbox" id="td-hide-done" /> <span data-i18n="td.hideDone">隐藏已完成</span></label>
+          <button class="btn-secondary" id="td-archive-toggle" data-i18n="td.archiveToggle">归档</button>
+        </div>
+      </header>
+      <div class="tool-body td-body">
+        <div id="td-form" class="td-form hidden">
+          <div class="td-form-row">
+            <input id="td-title" class="td-input" type="text" placeholder="待办主题（必填）" data-i18n-placeholder="td.titlePlaceholder" />
+            <input id="td-desc" class="td-input" type="text" placeholder="描述（可选）" data-i18n-placeholder="td.descPlaceholder" />
+            <input id="td-due" class="td-date" type="date" />
+          </div>
+          <div class="td-form-actions">
+            <button class="btn-primary" id="td-submit" data-i18n="td.add">添加</button>
+            <button class="btn-secondary" id="td-cancel" data-i18n="btn.cancel">取消</button>
+            <span id="td-form-hint" class="muted small"></span>
+          </div>
+        </div>
+        <div id="td-stats" class="td-stats"></div>
+        <div class="td-section hidden" id="td-overdue-section">
+          <h3 class="td-heading td-heading-overdue" data-i18n="td.overdueHeading">逾期</h3>
+          <div class="td-list" id="td-overdue"></div>
+        </div>
+        <div class="td-section">
+          <h3 class="td-heading" data-i18n="td.currentHeading">本月</h3>
+          <div class="td-list" id="td-current"></div>
+        </div>
+        <div class="td-section hidden" id="td-archive-section">
+          <h3 class="td-heading" id="td-archive-head" data-i18n="td.archiveHeading">归档</h3>
+          <div id="td-archive"></div>
+        </div>
+      </div>
+    </section>
   </div>
+
 
   <div id="modal" class="modal hidden">
     <div class="modal-card">
@@ -795,8 +886,11 @@
   <script src="lib/jwt.js"></script>
   <script src="lib/codegen.js"></script>
   <script src="lib/markdown.js"></script>
+  <script src="lib/todos.js"></script>
+  <script src="lib/notepad.js"></script>
   <script src="app.js"></script>
   <script src="tools.js"></script>
   <script src="tools2.js"></script>
+  <script src="tools3.js"></script>
 </body>
 </html>
