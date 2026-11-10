@@ -506,12 +506,24 @@ async function runSmoke (win, app) {
     const mdOpen = JSON.parse(await step(`(async () => {
       const wait = (ms) => new Promise(r => setTimeout(r, ms))
       document.querySelector('.tool-card[data-open="markdown"]').click()
-      await wait(200)
-      // simulate the dialog result the OS picker would deliver
-      const result = await window.api.dialog.openText({ filters: [{ name: 'Markdown', extensions: ['md'] }] })
-      return JSON.stringify({ hasHandler: !!document.querySelector('#md-open') })
+      await wait(250)
+      const btn = document.querySelector('#md-open')
+      // never call the real picker here: a native dialog would block a headless
+      // runner until the job times out
+      window.__moziOpenMarkdownFile(${JSON.stringify(mdFile)}, ${JSON.stringify(openMd)})
+      await wait(500)
+      return JSON.stringify({
+        hasHandler: !!btn,
+        label: btn ? btn.textContent.trim() : '',
+        h1: (document.querySelector('#md-preview h1') || {}).textContent || '',
+        base: document.querySelector('#md-base').textContent,
+        editorHasContent: document.querySelector('#md-in').value.includes('本地 md 内容')
+      })
     })()`))
-    check('md open button present', mdOpen.hasHandler)
+    check('md open button present', mdOpen.hasHandler, mdOpen.label)
+    check('md open loads content and sets the image folder',
+      mdOpen.h1 === '从文件打开' && mdOpen.editorHasContent && mdOpen.base === path.dirname(mdFile),
+      JSON.stringify({ ...mdOpen, expectedBase: path.dirname(mdFile) }))
     // the picker itself is interactive; verify the file content path end-to-end by
     // loading it directly into the editor the way the handler does
     const mdLoaded = JSON.parse(await step(`(async () => {

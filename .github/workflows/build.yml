@@ -122,7 +122,13 @@ jobs:
             echo "no Apple credentials: building unsigned"
           fi
           for i in 1 2 3; do
-            npm run ${{ matrix.script }} -- $EXTRA && break
+            # an empty $EXTRA must not become an argument: electron-builder treats
+            # positional args as the files to build and would report "not a file"
+            if [ -n "$EXTRA" ]; then
+              npm run ${{ matrix.script }} -- $EXTRA && break
+            else
+              npm run ${{ matrix.script }} && break
+            fi
             [ "$i" = 3 ] && exit 1
             echo "packaging failed (attempt $i); retrying in 30s"
             sleep 30

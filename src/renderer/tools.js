@@ -574,6 +574,14 @@ flowchart LR
       if (!opts || opts.rerender !== false) render()
     }
 
+    // load a markdown file that is already on disk; the dialog handler and the
+    // smoke harness both go through here
+    function openMarkdownFile (filePath, content) {
+      input.value = String(content == null ? '' : content)
+      setBaseDir(dirName(filePath), { rerender: false })
+      render()
+    }
+
     function setFullscreen (on) {
       mdFullscreen = !!on
       const view = document.querySelector('#view-markdown')
@@ -589,6 +597,7 @@ flowchart LR
     }
     // test seam: point the resolver at a folder without going through a dialog
     window.__moziSetMdBaseDir = (dir) => setBaseDir(dir)
+    window.__moziOpenMarkdownFile = openMarkdownFile
     window.__moziMdState = () => ({ baseDir: mdBaseDir, fullscreen: mdFullscreen })
 
     function render () {
@@ -643,9 +652,7 @@ flowchart LR
     $('#md-open').addEventListener('click', async () => {
       const result = await api.dialog.openText({ filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'txt'] }] })
       if (!result.ok) return
-      input.value = result.content
-      setBaseDir(dirName(result.path), { rerender: false })
-      render()
+      openMarkdownFile(result.path, result.content)
       const name = String(result.path).split(/[\\/]/).pop()
       toast(`已打开 ${name}`)
     })
