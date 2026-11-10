@@ -1511,6 +1511,9 @@
   }
   // exposed so the smoke harness can drive the same path the menu accelerator uses
   window.__moziSmokeFireMenu = (action) => runMenuAction(action)
+  // the app restores the last view, so the suite resets to the toolbox first and
+  // stays deterministic no matter what a previous run left behind
+  window.__moziSmokeResetView = () => { showView('home'); return state.ui.view }
   function runMenuAction (action) {
     const view = state.ui.view
     for (const claim of menuClaims) {

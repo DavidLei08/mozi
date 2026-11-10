@@ -151,6 +151,9 @@ async function runSmoke (win, app) {
     await new Promise((r) => setTimeout(r, 1600))
 
     // ============ HOME ============
+    await step(`(typeof window.__moziSmokeResetView === 'function') ? window.__moziSmokeResetView() : true`)
+    await new Promise((r) => setTimeout(r, 200))
+
     const home = JSON.parse(await step(`JSON.stringify({
       title: document.title,
       active: document.querySelector('.view.is-active').dataset.view,
