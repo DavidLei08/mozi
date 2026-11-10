@@ -795,8 +795,23 @@ ${preview.innerHTML}
       const dot = document.querySelector('#md-dirty')
       if (dot) dot.hidden = !mdDirty()
     }
-    function mdCloseMenus () {
-      for (const menu of document.querySelectorAll('#md-toolbar .md-menu[open]')) menu.removeAttribute('open')
+    function mdCloseMenus (keep) {
+      for (const menu of document.querySelectorAll('#md-toolbar .md-menu[open]')) {
+        if (menu !== keep) menu.removeAttribute('open')
+      }
+    }
+    // Only one dropdown at a time: opening a menu closes every other one, and a
+    // click anywhere outside the toolbar dismisses them all.
+    function wireMdMenus () {
+      for (const menu of document.querySelectorAll('#md-toolbar .md-menu')) {
+        menu.addEventListener('toggle', () => {
+          if (menu.open) mdCloseMenus(menu)
+        })
+      }
+      document.addEventListener('click', (event) => {
+        if (event.target.closest('#md-toolbar')) return
+        mdCloseMenus()
+      }, true)
     }
     function mdTouch () {
       render()
@@ -919,18 +934,8 @@ ${preview.innerHTML}
       mdReplace(start, end, fence)
     }
 
-    function mdMore (kind) {
-      if (kind === 'copy-md') { copy(input.value, 'Markdown'); return }
-      if (kind === 'base-dir') {
-        const label = document.querySelector('#md-base')
-        toast(label && label.textContent ? `${tr('md.baseDirHint', '图片相对路径按此目录解析')}：${label.textContent}` : tr('md.noBaseDir', '还没有设置图片基准目录，打开本地 .md 文件后会自动设置'))
-        return
-      }
-    }
-
     const mdActions = {
       'data-md-lang': (value) => mdCodeBlock(value),
-      'data-md-more': (value) => mdMore(value),
       'data-md-inline': (value) => mdWrapInline(value),
       'data-md-heading': (value) => mdHeading(Number(value)),
       'data-md-line': (value) => mdLinePrefix(value),
@@ -938,7 +943,7 @@ ${preview.innerHTML}
       'data-md-clear': () => mdClearMarks()
     }
     on('#md-toolbar', 'click', (event) => {
-      const button = event.target.closest('button[data-md-inline], button[data-md-heading], button[data-md-line], button[data-md-block], button[data-md-clear], button[data-md-lang], button[data-md-more]')
+      const button = event.target.closest('button[data-md-inline], button[data-md-heading], button[data-md-line], button[data-md-block], button[data-md-clear], button[data-md-lang]')
       if (!button) return
       event.preventDefault()
       for (const [attr, run] of Object.entries(mdActions)) {
@@ -948,6 +953,7 @@ ${preview.innerHTML}
       mdCloseMenus()
     })
     on('#md-toolbar', 'keydown', (event) => { if (event.key === 'Escape') mdCloseMenus() })
+    wireMdMenus()
     on('#md-tb-image', 'click', () => { pickAndInsertImage() })
     on('#md-tb-link', 'click', () => mdInsertLink())
     on('#md-tb-save', 'click', () => { saveMarkdown(false) })

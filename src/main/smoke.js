@@ -905,7 +905,7 @@ async function runSmoke (win, app) {
       JSON.stringify(mdHeader.titles))
 
     // the toolbar matches the reference: icon+label menus, a language list,
-    // an icon save with the unsaved dot, history and a more menu
+    // an icon save with the unsaved dot and four menu groups
     const mdTbShape = JSON.parse(await step(`(() => {
       const bar = document.querySelector('#md-toolbar')
       const menus = [...bar.querySelectorAll('.md-menu')]
@@ -921,12 +921,49 @@ async function runSmoke (win, app) {
       })
     })()`))
     check('toolbar matches the reference layout',
-      mdTbShape.marks >= 4 && mdTbShape.menuKeys.join(',') === 'lists,code,format,insert,more' &&
+      mdTbShape.marks >= 4 && mdTbShape.menuKeys.join(',') === 'lists,code,format,insert' &&
       mdTbShape.menuIcons && mdTbShape.languages >= 20 && mdTbShape.saveIsIcon &&
-      mdTbShape.dot && mdTbShape.more,
+      mdTbShape.dot && !mdTbShape.more,
       JSON.stringify(mdTbShape))
+    const mdMenuExclusive = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const menus = [...document.querySelectorAll('#md-toolbar .md-menu')]
+      const codes = [...document.querySelectorAll('#md-toolbar .md-lang-item')].map((b) => b.dataset.mdLang)
+      menus[0].setAttribute('open', '')
+      await wait(200)
+      menus[1].setAttribute('open', '')  // opening the second must close the first
+      await wait(250)
+      const openAfterTwo = menus.filter((m) => m.open).length
+      const firstClosed = !menus[0].open && menus[1].open
+      menus[2].setAttribute('open', '')
+      await wait(250)
+      const openAfterThree = menus.filter((m) => m.open).length
+      document.body.click()
+      await wait(200)
+      const openAfterOutside = menus.filter((m) => m.open).length
+      return JSON.stringify({
+        openAfterTwo, firstClosed, openAfterThree, openAfterOutside,
+        codes: codes.slice(0, 5), menuCount: menus.length
+      })
+    })()`))
+    const mdMenuPaint = JSON.parse(await step(`(() => {
+      const menu = document.querySelector('#md-menu-code')
+      const panel = menu.querySelector('.md-menu-body')
+      const cs = getComputedStyle(panel)
+      const bg = cs.backgroundColor || ''
+      const transparent = bg === 'transparent' || /rgba\(0, 0, 0, 0\)/.test(bg)
+      return JSON.stringify({ bg, transparent, shadow: cs.boxShadow !== 'none', zIndex: cs.zIndex })
+    })()`))
+    check('dropdown panel paints an opaque background',
+      !mdMenuPaint.transparent && mdMenuPaint.shadow, JSON.stringify(mdMenuPaint))
+
+    check('only one markdown menu stays open at a time',
+      mdMenuExclusive.openAfterTwo === 1 && mdMenuExclusive.firstClosed &&
+      mdMenuExclusive.openAfterThree === 1 && mdMenuExclusive.openAfterOutside === 0,
+      JSON.stringify(mdMenuExclusive))
+
     check('menu labels are translated',
-      mdTbShape.menuLabels.join(',') === '列表,代码块,格式,插入,更多', mdTbShape.menuLabels.join(','))
+      mdTbShape.menuLabels.join(',') === '列表,代码块,格式,插入', mdTbShape.menuLabels.join(','))
 
     // a language entry produces a fenced block with that language
     const mdLang = JSON.parse(await step(`(async () => {
@@ -985,9 +1022,7 @@ async function runSmoke (win, app) {
       if (menu) menu.setAttribute('open', '')
       return true
     })()`)
-    await new Promise((r) => setTimeout(r, 600))
-    await step(`(() => { const m = document.querySelector('#md-toolbar .md-menu[open]'); if (m) m.removeAttribute('open'); return true })()`)
-    await new Promise((r) => setTimeout(r, 250))
+    await new Promise((r) => setTimeout(r, 700))
     await capture(shot('-md-toolbar'))
 
     // the save button carries an unsaved marker that clears once written
