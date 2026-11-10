@@ -774,7 +774,14 @@ body.is-dragging .split-handle { pointer-events: auto; }
 .np-item.is-active { border-color: var(--accent); background: var(--panel-2, var(--panel)); }
 .np-item-title { font-size: 13px; color: var(--text-strong, var(--text)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .np-item-sub { font-size: 11px; color: var(--muted); }
-.np-title { font-size: 13px; color: var(--text-strong, var(--text)); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.np-title-input {
+  flex: 1; min-width: 0; font: inherit; font-size: 14px; font-weight: 600;
+  color: var(--text-strong, var(--text)); background: transparent;
+  border: 1px solid transparent; border-radius: 7px; padding: 4px 8px;
+}
+.np-title-input::placeholder { color: var(--muted); font-weight: 400; }
+.np-title-input:hover { border-color: var(--line); }
+.np-title-input:focus { outline: none; background: var(--bg-2); border-color: var(--accent); }
 .np-toolbar { display: flex; flex-wrap: wrap; gap: 4px; padding: 6px 10px; border-bottom: 1px solid var(--line); flex: none; align-items: center; }
 .np-sep { width: 1px; height: 16px; background: var(--line); margin: 0 4px; }
 .np-btn {

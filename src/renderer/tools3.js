@@ -87,6 +87,18 @@
       data.setNotes(all().map((n) => (n.id === id ? { ...n, ...changes, updatedAt: new Date().toISOString() } : n)))
     }
 
+    // With no hand-written title the field stays empty, so the placeholder
+    // previews what the list will show (the first line of the body).
+    function syncTitleHint (html) {
+      const derived = NP.titleFrom(html === undefined ? editor.innerHTML : html, '')
+      titleEl.placeholder = derived || tr('np.untitled', '未命名')
+    }
+
+    function showTitle (note) {
+      titleEl.value = note.title || ''
+      syncTitleHint(note.html)
+    }
+
     function renderList () {
       const notes = all().slice().sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
       const ui = data.notesUI()
@@ -107,7 +119,7 @@
       data.notesUI().activeId = id
       const note = active()
       editor.innerHTML = NP.sanitize(note.html)
-      titleEl.textContent = note.title || tr('np.untitled', '未命名')
+      showTitle(note)
       const words = NP.wordCount(note.html)
       metaEl.textContent = tr('np.meta', '{time} · {chars} 字 · {words} 词')
         .replace('{time}', stamp(note.updatedAt))
@@ -119,9 +131,11 @@
     const persist = debounce(() => {
       const note = active()
       const html = NP.sanitize(editor.innerHTML)
-      const title = NP.titleFrom(html, '')
-      patch(note.id, { html, title })
-      titleEl.textContent = title || tr('np.untitled', '未命名')
+      const changes = { html }
+      // a hand-typed title wins; otherwise fall back to the first body line
+      if (!note.titleEdited) changes.title = NP.titleFrom(html, '')
+      patch(note.id, changes)
+      syncTitleHint(html)
       const words = NP.wordCount(html)
       metaEl.textContent = tr('np.meta', '{time} · {chars} 字 · {words} 词')
         .replace('{time}', stamp(new Date().toISOString()))
@@ -129,6 +143,19 @@
         .replace('{words}', String(words.words))
       renderList()
     }, 350)
+
+    const saveTitle = debounce(() => {
+      const note = active()
+      const value = titleEl.value.trim()
+      patch(note.id, { title: value, titleEdited: value.length > 0 })
+      syncTitleHint(editor.innerHTML)
+      renderList()
+    }, 250)
+
+    titleEl.addEventListener('input', saveTitle)
+    titleEl.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') { event.preventDefault(); editor.focus() }
+    })
 
     editor.addEventListener('input', () => { if (!composing) persist() })
     editor.addEventListener('compositionstart', () => { composing = true })

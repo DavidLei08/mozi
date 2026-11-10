@@ -105,6 +105,7 @@ test('emptyNote starts blank with a stamp', () => {
   const note = Notepad.emptyNote(new Date('2026-11-09T10:00:00'))
   assert.equal(note.html, '')
   assert.equal(note.title, '')
+  assert.equal(note.titleEdited, false, 'a new note has no hand-written title yet')
   assert.equal(note.createdAt, new Date('2026-11-09T10:00:00').toISOString())
   assert.ok(note.id)
   assert.notEqual(Notepad.emptyNote().id, note.id)

@@ -27,7 +27,9 @@
 
   function emptyNote (now) {
     const stamp = (now instanceof Date ? now : new Date(now == null ? Date.now() : now)).toISOString()
-    return { id: uid(), title: '', html: '', createdAt: stamp, updatedAt: stamp }
+    // titleEdited: a hand-typed title must never be overwritten by the
+    // first line of the body, which is only a fallback label
+    return { id: uid(), title: '', titleEdited: false, html: '', createdAt: stamp, updatedAt: stamp }
   }
 
   function escAttr (value) {

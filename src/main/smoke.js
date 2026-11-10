@@ -534,7 +534,8 @@ async function runSmoke (win, app) {
         scriptGone: !/<script/i.test(String(active.html)),
         imageKept: String(active.html).includes('data:image/png'),
         listItems: document.querySelectorAll('#np-list .np-item').length,
-        shownTitle: document.querySelector('#np-title').textContent,
+        shownTitle: document.querySelector('#np-title').value,
+        titleHint: document.querySelector('#np-title').placeholder,
         meta: document.querySelector('#np-meta').textContent
       })
     })()`))
@@ -554,9 +555,56 @@ async function runSmoke (win, app) {
     check('notepad toolbar lays buttons out in a row',
       toolbar.count >= 12 && toolbar.rows <= 3 && toolbar.widest < toolbar.barWidth / 2,
       JSON.stringify(toolbar))
-    check('notepad lists the note with its title', noteResult.listItems >= 1 && noteResult.shownTitle.includes('会议记录'), noteResult.shownTitle)
+    check('notepad lists the note with its title',
+      noteResult.listItems >= 1 && (noteResult.shownTitle + noteResult.titleHint).includes('会议记录'),
+      JSON.stringify({ value: noteResult.shownTitle, hint: noteResult.titleHint }))
     await visibleCheck('notepad')
     await capture(shot('-notepad'))
+
+    // ---- notepad title: hand-written wins, clearing falls back ----
+    const titleEdit = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const activeNote = () => {
+        const notes = window.__moziData.notes()
+        return notes.find((n) => n.id === window.__moziData.notesUI().activeId) || {}
+      }
+      const listTitle = () => {
+        const item = document.querySelector('#np-list .np-item-title')
+        return item ? item.textContent : ''
+      }
+      const titleInput = document.querySelector('#np-title')
+      const editor = document.querySelector('#np-editor')
+
+      titleInput.value = '手动标题'
+      titleInput.dispatchEvent(new Event('input', { bubbles: true }))
+      await wait(550)
+      const typed = { stored: activeNote().title, inList: listTitle(), flagged: activeNote().titleEdited }
+
+      editor.innerHTML = '<p>正文第一行变了</p>'
+      editor.dispatchEvent(new Event('input', { bubbles: true }))
+      await wait(650)
+      const afterBody = { stored: activeNote().title, inList: listTitle() }
+
+      titleInput.value = ''
+      titleInput.dispatchEvent(new Event('input', { bubbles: true }))
+      await wait(650)
+      const cleared = { stored: activeNote().title, inList: listTitle(), flagged: activeNote().titleEdited, placeholder: titleInput.placeholder }
+
+      return JSON.stringify({ typed, afterBody, cleared })
+    })()`))
+    check('notepad title is editable',
+      titleEdit.typed.stored === '手动标题' && titleEdit.typed.inList === '手动标题' && titleEdit.typed.flagged === true,
+      JSON.stringify(titleEdit.typed))
+    check('a hand-written title survives body edits',
+      titleEdit.afterBody.stored === '手动标题' && titleEdit.afterBody.inList === '手动标题',
+      JSON.stringify(titleEdit.afterBody))
+    await step(`(() => { const t = document.querySelector('#np-title'); t.value = '数据库改密记录'; t.dispatchEvent(new Event('input', { bubbles: true })); return true })()`)
+    await new Promise((r) => setTimeout(r, 500))
+    await capture(shot('-notepad-title'))
+    check('clearing the title falls back to the first body line',
+      titleEdit.cleared.stored === '' && titleEdit.cleared.inList === '正文第一行变了' &&
+      titleEdit.cleared.flagged === false && titleEdit.cleared.placeholder.length > 0,
+      JSON.stringify(titleEdit.cleared))
 
     // ---- notepad images: real file through the real IPC, and a clipboard paste ----
     const PNG_B64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
