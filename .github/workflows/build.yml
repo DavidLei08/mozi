@@ -155,16 +155,26 @@ jobs:
           body: |
             本地优先的桌面工具箱，11 个工具，数据不出机器。
 
+            ## 本版新增（0.4.3）
+
+            - **中英双语**：首页右上角切换，界面与原生菜单同步；中文纯中文、英文纯英文
+            - **Markdown 全屏预览**：一键铺满窗口，`Esc` 退出而不离开工具
+            - **相对路径图片**：打开本地 `.md` 后，`./img/sss.png` 按文件所在目录解析并回显
+            - **更稳的 CI**：冒烟测试带看门狗与单步超时，安装包只保留中英文语言包
+
             ## 工具
-            请求工具（HTTP / GraphQL / WebSocket / SSE）· 字符转义 · JSON 格式化 ·
-            Base64 工具箱（文本 + 图片双向）· Markdown 编辑器（图片回显 + Mermaid）·
-            JWT 解析 · Hash 摘要 · 时间戳 · UUID/密码 · 正则测试 · cURL 转代码
+
+            请求工具（HTTP / GraphQL / WebSocket / SSE，含集合、历史、环境变量、Cookie 管理、
+            cURL 导入导出）· 字符转义 · JSON 格式化 · Base64 工具箱（文本 + 图片双向）·
+            Markdown 编辑器（全屏预览 + 图片回显 + Mermaid 流程图）· JWT 解析 · 哈希摘要 ·
+            时间戳转换 · UUID / 密码生成 · 正则测试 · cURL 转代码
 
             ## 安装
-            安装包未签名。macOS 首次打开若提示「已损坏」：
+
+            未签名。macOS 首次打开若提示「已损坏」：
 
             ```
             xattr -dr com.apple.quarantine /Applications/Mozi.app
             ```
 
-            Windows SmartScreen 同样需要选择「仍要运行」。
+            Windows SmartScreen 选择「仍要运行」。
