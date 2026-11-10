@@ -88,12 +88,38 @@ async function runSmoke (win, app) {
   const checks = []
   let servers = null
 
+  const WATCHDOG_MS = Number(process.env.MOZI_SMOKE_TIMEOUT_MS || 600000)
+  const watchdog = setTimeout(async () => {
+    console.error(`SMOKE_TIMEOUT after ${Math.round(WATCHDOG_MS / 1000)}s`)
+    console.error(`checks so far: ${checks.length} | failures: ${failures.join(',') || 'none'}`)
+    try {
+      const diag = await Promise.race([
+        win.webContents.executeJavaScript(`JSON.stringify({
+          view: (document.querySelector('.view.is-active') || { dataset: {} }).dataset.view,
+          errors: (window.__errors || []).slice(-5)
+        })`, true),
+        new Promise((r) => setTimeout(() => r('"diagnostics unavailable"'), 3000))
+      ])
+      console.error('renderer state:', diag)
+    } catch (err) { console.error('diagnostics failed:', err.message) }
+    if (servers) { try { servers.server.close() } catch { /* ignore */ } ; try { servers.wss.close() } catch { /* ignore */ } }
+    app.exit(1)
+  }, WATCHDOG_MS)
+
   const check = (name, ok, extra) => {
     checks.push(name)
     if (!ok) failures.push(name)
     console.log(`${ok ? 'CHECK_OK  ' : 'CHECK_FAIL'} ${name}${extra ? ' :: ' + extra : ''}`)
   }
-  const step = (script) => win.webContents.executeJavaScript(script, true)
+  const STEP_TIMEOUT_MS = Number(process.env.MOZI_SMOKE_STEP_TIMEOUT_MS || 25000)
+  const step = (script) => new Promise((resolve, reject) => {
+    const label = String(script).replace(/\s+/g, ' ').slice(0, 70)
+    const timer = setTimeout(() => reject(new Error(`step timed out after ${STEP_TIMEOUT_MS}ms: ${label}`)), STEP_TIMEOUT_MS)
+    win.webContents.executeJavaScript(script, true).then(
+      (value) => { clearTimeout(timer); resolve(value) },
+      (err) => { clearTimeout(timer); reject(err) }
+    )
+  })
   const visibleCheck = async (viewId) => {
     const box = JSON.parse(await step(`(async () => {
       const view = document.querySelector('.view.is-active')
@@ -107,9 +133,18 @@ async function runSmoke (win, app) {
     return box
   }
 
+  const shotsEnabled = process.env.MOZI_SMOKE_NO_SHOTS !== '1'
   const capture = async (file) => {
-    const image = await win.webContents.capturePage()
-    await fsp.writeFile(file, image.toPNG())
+    if (!shotsEnabled) return
+    try {
+      const image = await Promise.race([
+        win.webContents.capturePage(),
+        new Promise((_, reject) => setTimeout(() => reject(new Error('capturePage timed out')), 15000))
+      ])
+      await fsp.writeFile(file, image.toPNG())
+    } catch (err) {
+      console.warn('SKIP_SHOT', file, err.message)
+    }
   }
 
   try {
@@ -128,7 +163,7 @@ async function runSmoke (win, app) {
     check('app title is Mozi', home.title === 'Mozi', home.title)
     check('home is the entry view', home.active === 'home', home.active)
     check('eleven tool cards', home.cards === 11, String(home.cards))
-    check('cards named correctly', ['请求工具', '字符转义', 'JSON 格式化', 'Base64 工具箱', 'Markdown 编辑器', 'JWT 解析', '正则测试', 'cURL 转代码', 'Hash 摘要', '时间戳转换', 'UUID / 密码'].every((n) => home.names.includes(n)), home.names.join(','))
+    check('cards named correctly', ['请求工具', '字符转义', 'JSON 格式化', 'Base64 工具箱', 'Markdown 编辑器', 'JWT 解析', '正则测试', 'cURL 转代码', '哈希摘要', '时间戳转换', 'UUID / 密码生成'].every((n) => home.names.includes(n)), home.names.join(','))
     const groupCount = JSON.parse(await step(`JSON.stringify(document.querySelectorAll('.tool-group').length)`))
     check('home is grouped', groupCount === 3, String(groupCount))
     const freshStrip = JSON.parse(await step(`JSON.stringify({ hasStrip: !!document.querySelector('.tool-group.is-recent') })`))
@@ -394,6 +429,68 @@ async function runSmoke (win, app) {
     await new Promise((r) => setTimeout(r, 250))
     check('dark theme restores', themeSwitch.dark.mode === 'dark' && themeSwitch.dark.bg === 'rgb(14, 16, 21)', JSON.stringify(themeSwitch.dark))
 
+    // ============ LANGUAGE ============
+    const zhBefore = JSON.parse(await step(`JSON.stringify({
+      names: [...document.querySelectorAll('.tool-name')].map(e => e.textContent).slice(0, 4),
+      headings: [...document.querySelectorAll('.tool-groups h3')].map(e => e.textContent.trim())
+    })`))
+    const enUi = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const seg = document.querySelector('#langSeg [data-lang-choice="en"]')
+      if (!seg) return JSON.stringify({ missing: true })
+      seg.click()
+      await wait(350)
+      return JSON.stringify({
+        htmlLang: document.documentElement.lang,
+        names: [...document.querySelectorAll('.tool-name')].map(e => e.textContent).slice(0, 4),
+        headings: [...document.querySelectorAll('.tool-groups h3')].map(e => e.textContent.trim()),
+        switcher: [...document.querySelectorAll('#langSeg .seg-btn')].map(e => e.className)
+      })
+    })()`))
+    await capture(shot('-home-en'))
+    const enHttp = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      document.querySelector('.tool-card[data-open="http"]').click()
+      await wait(450)
+      return JSON.stringify({
+        tabs: [...document.querySelectorAll('.req-tab')].map(e => e.textContent.trim()),
+        action: document.querySelector('#btn-send').textContent,
+        options: [...document.querySelectorAll('.chk span[data-i18n]')].map(e => e.textContent.trim())
+      })
+    })()`))
+    await capture(shot('-http-en'))
+    const zhAfter = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      document.querySelector('.back-mark[data-back]').click()
+      await wait(300)
+      document.querySelector('#langSeg [data-lang-choice="zh"]').click()
+      await wait(350)
+      return JSON.stringify({
+        htmlLang: document.documentElement.lang,
+        names: [...document.querySelectorAll('.tool-name')].map(e => e.textContent).slice(0, 4),
+        headings: [...document.querySelectorAll('.tool-groups h3')].map(e => e.textContent.trim()),
+        tab: document.querySelector('.side-tab').textContent
+      })
+    })()`))
+
+    check('language switch renders English tool names',
+      !enUi.missing && enUi.htmlLang === 'en' && enUi.names.join(',') !== zhBefore.names.join(','),
+      JSON.stringify(enUi.names))
+    check('language switch restores Chinese',
+      zhAfter.htmlLang === 'zh-CN' && JSON.stringify(zhAfter.names) === JSON.stringify(zhBefore.names),
+      JSON.stringify(zhAfter.names))
+    check('request panels translate too',
+      enHttp.tabs.map((t) => t.replace(/\s*•$/, '')).join(',') === 'Params,Headers,Body,Auth,Cookies' &&
+      ['Send', 'Connect', 'Disconnect'].includes(enHttp.action),
+      JSON.stringify({ tabs: enHttp.tabs, action: enHttp.action }))
+    check('request options translate too',
+      enHttp.options.length > 0 && enHttp.options.every((t) => !/[\u4e00-\u9fa5]/.test(t)),
+      JSON.stringify(enHttp.options))
+    check('home headings translate',
+      enUi.headings.includes('Development') && enUi.headings.includes('Encoding & Conversion') &&
+      zhAfter.headings.includes('开发') && zhAfter.headings.includes('编码与转换'),
+      JSON.stringify({ en: enUi.headings, zh: zhAfter.headings }))
+
     // ============ UNIFIED BACK MARKS ============
     const backMarks = JSON.parse(await step(`JSON.stringify({
       count: document.querySelectorAll('.back-mark[data-back]').length,
@@ -502,8 +599,14 @@ async function runSmoke (win, app) {
         stored: localStorage.getItem('mozi.split.http.sidebar')
       })
     })()`))
-    await win.webContents.reload()
-    await new Promise((r) => setTimeout(r, 1800))
+    await new Promise((resolve) => {
+      let settled = false
+      const done = () => { if (!settled) { settled = true; resolve() } }
+      win.webContents.once('did-finish-load', done)
+      win.webContents.reload()
+      setTimeout(done, 10000) // fallback: keep going, the step timeout will report
+    })
+    await new Promise((r) => setTimeout(r, 1200))
     const restored = JSON.parse(await step(`JSON.stringify({
       sidebar: Math.round(document.querySelector('.sidebar').getBoundingClientRect().width),
       request: Math.round(document.querySelector('.request-pane').getBoundingClientRect().height),
@@ -626,7 +729,7 @@ async function runSmoke (win, app) {
       await wait(250)
       return JSON.stringify({ toast: document.querySelector('#toast').textContent })
     })()`))
-    check('curl export feedback', /cURL copied/i.test(curlExport.toast), curlExport.toast)
+    check('curl export feedback', /cURL\s*(copied|已复制)/i.test(curlExport.toast), curlExport.toast)
 
     // ============ ESCAPE TOOL ============
     await step(`document.querySelector('#btn-home').click()`)
@@ -822,6 +925,69 @@ async function runSmoke (win, app) {
       })
     })()`))
     check('mermaid repaints on theme switch', themeRepaint.changed && themeRepaint.restored, JSON.stringify(themeRepaint))
+
+    // ---- relative image paths resolve against the .md file's folder ----
+    const mdHome = path.join(app.getPath('temp'), 'mozi-smoke-md')
+    await fsp.mkdir(path.join(mdHome, 'img'), { recursive: true })
+    await fsp.writeFile(path.join(mdHome, 'img', 'sss.png'),
+      Buffer.from('iVBORw0KGgoAAAANSUhEUgAAABQAAAAUCAIAAAAC64paAAAAGklEQVR42mPQXzGfbMQwqnlU86jmUc0DqxkAHBRIf01ttG4AAAAASUVORK5CYII=', 'base64'))
+    const relImg = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      window.__moziSetMdBaseDir(${JSON.stringify(mdHome)})
+      const input = document.querySelector('#md-in')
+      input.value = '相对图片 ![sss](./img/sss.png)'
+      input.dispatchEvent(new Event('input', { bubbles: true }))
+      await wait(700)
+      const img = document.querySelector('#md-preview img')
+      return JSON.stringify({
+        src: img ? img.getAttribute('src') : null,
+        from: img ? img.dataset.resolvedFrom : null,
+        loaded: img ? img.naturalWidth > 0 : false,
+        base: document.querySelector('#md-base').textContent
+      })
+    })()`))
+    check('relative image resolves against the md folder',
+      !!relImg.src && relImg.src.startsWith('file://') && relImg.src.endsWith('/img/sss.png') &&
+      relImg.from === './img/sss.png' && relImg.loaded && relImg.base.includes('mozi-smoke-md'),
+      JSON.stringify(relImg))
+    await capture(shot('-md-relative'))
+
+    // ---- fullscreen preview ----
+    await step(`document.querySelector('#md-full').click(); true`)
+    await new Promise((r) => setTimeout(r, 500))
+    await capture(shot('-md-fullscreen'))
+    const full = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const view = document.querySelector('#view-markdown')
+      const pane = document.querySelector('#md-preview').closest('.pane')
+      const rect = pane.getBoundingClientRect()
+      const on = view.classList.contains('is-md-fullscreen')
+      const covers = Math.abs(rect.width - window.innerWidth) < 6 && Math.abs(rect.height - window.innerHeight) < 6
+      const editorHidden = getComputedStyle(document.querySelector('#md-in').closest('.pane')).display === 'none'
+      const exitVisible = getComputedStyle(document.querySelector('#md-exit-full')).display !== 'none'
+      document.querySelector('#md-exit-full').click()
+      await wait(300)
+      return JSON.stringify({ on, covers, editorHidden, exitVisible, off: !view.classList.contains('is-md-fullscreen') })
+    })()`))
+    check('markdown fullscreen preview fills the window', full.on && full.covers && full.editorHidden && full.exitVisible, JSON.stringify(full))
+    check('fullscreen exit restores the split view', full.off, JSON.stringify(full))
+
+    const escFull = JSON.parse(await step(`(async () => {
+      const wait = (ms) => new Promise(r => setTimeout(r, ms))
+      const view = document.querySelector('#view-markdown')
+      document.querySelector('#md-full').click()
+      await wait(300)
+      const before = view.classList.contains('is-md-fullscreen')
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }))
+      await wait(300)
+      return JSON.stringify({
+        before,
+        after: view.classList.contains('is-md-fullscreen'),
+        view: document.querySelector('.view.is-active').dataset.view
+      })
+    })()`))
+    check('Esc leaves fullscreen without leaving the tool',
+      escFull.before && !escFull.after && escFull.view === 'markdown', JSON.stringify(escFull))
     check('markdown image renders', mdResult.image.ok, `w=${mdResult.image.w}`)
     await capture(shot('-markdown'))
 
@@ -1134,12 +1300,21 @@ async function runSmoke (win, app) {
     check('Esc returns to toolbox', escHome.active === 'home', escHome.active)
     check('toolbox has eleven tools', backHome.cards === 11, String(backHome.cards))
 
+    clearTimeout(watchdog)
+    if (failures.length) {
+      try {
+        const errs = await step(`JSON.stringify((window.__errors || []).slice(-8))`)
+        console.log('RENDERER_ERRORS', errs)
+      } catch { /* ignore */ }
+    }
     console.log(`SMOKE_${failures.length ? 'FAIL' : 'OK'} ${out} ${failures.length ? 'failures=' + failures.join(',') : `all ${checks.length} checks passed`}`)
     if (servers) servers.server.close()
     if (servers && servers.wss) servers.wss.close()
     app.exit(failures.length ? 1 : 0)
   } catch (err) {
-    console.error('SMOKE_FAIL', err)
+    clearTimeout(watchdog)
+    console.error('SMOKE_FAIL', err && err.message ? err.message : err)
+    console.error(`checks before failure: ${checks.length} | failures: ${failures.join(',') || 'none'}`)
     if (servers) { try { servers.server.close() } catch { /* ignore */ } ; try { servers.wss.close() } catch { /* ignore */ } }
     app.exit(1)
   }

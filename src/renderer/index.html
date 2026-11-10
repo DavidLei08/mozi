@@ -5,6 +5,8 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob: https: http: file:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'none'" />
   <title>Mozi</title>
   <link rel="stylesheet" href="styles.css" />
+  <script src="lib/i18n-dict.js"></script>
+  <script src="lib/i18n.js"></script>
 </head>
 <body data-pane="app">
   <div id="views">
@@ -14,28 +16,32 @@
         <div class="home-brand">
           <span class="brand-mark big">M</span>
           <div>
-            <h1>Mozi</h1>
-            <p class="muted">一个工作台，收好每天要用的小工具</p>
+            <h1 data-i18n="home.title">Mozi</h1>
+            <p class="muted" data-i18n="home.tagline">一个工作台，收好每天要用的小工具</p>
           </div>
         </div>
         <div class="home-right">
-          <div class="seg theme-seg" id="themeSeg" role="radiogroup" aria-label="主题">
-            <button class="seg-btn" data-theme-choice="light" role="radio" title="浅色">☀</button>
-            <button class="seg-btn" data-theme-choice="system" role="radio" title="跟随系统">◐</button>
-            <button class="seg-btn" data-theme-choice="dark" role="radio" title="深色">☾</button>
+          <div class="seg lang-seg" id="langSeg" role="radiogroup" aria-label="语言" data-i18n-aria="aria.languageGroup">
+            <button class="seg-btn" data-lang-choice="zh" role="radio" title="中文" data-i18n-title="lang.zh">中</button>
+            <button class="seg-btn" data-lang-choice="en" role="radio" title="English" data-i18n-title="lang.en">EN</button>
           </div>
-          <div class="home-meta muted small">本地运行 · 数据不出机器</div>
+          <div class="seg theme-seg" id="themeSeg" role="radiogroup" aria-label="主题" data-i18n-aria="aria.themeGroup">
+            <button class="seg-btn" data-theme-choice="light" role="radio" title="浅色" data-i18n-title="home.theme.light">☀</button>
+            <button class="seg-btn" data-theme-choice="system" role="radio" title="跟随系统" data-i18n-title="home.theme.system">◐</button>
+            <button class="seg-btn" data-theme-choice="dark" role="radio" title="深色" data-i18n-title="home.theme.dark">☾</button>
+          </div>
+          <div class="home-meta muted small" data-i18n="home.meta">本地运行 · 数据不出机器</div>
         </div>
       </header>
 
       <div class="home-search">
-        <input id="toolSearch" type="search" placeholder="搜索工具…  ⌘K" spellcheck="false" autocomplete="off" />
+        <input id="toolSearch" type="search" placeholder="搜索工具…  ⌘K" data-i18n-placeholder="home.searchPlaceholder" spellcheck="false" autocomplete="off" />
         <span class="muted small" id="toolCount"></span>
       </div>
 
       <div id="toolGroups" class="tool-groups"></div>
 
-      <footer class="home-foot muted small">Mozi v0.2.0 · Electron 桌面端 · macOS / Windows</footer>
+      <footer class="home-foot muted small" data-i18n="home.footer">Mozi v0.2.0 · Electron 桌面端 · macOS / Windows</footer>
     </section>
 
     <!-- ======================= HTTP TOOL ======================= -->
@@ -44,21 +50,21 @@
         <aside class="sidebar" data-pane="sidebar">
           <div class="sidebar-head">
             <div class="brand">
-              <button id="btn-home" class="brand-mark as-btn" title="返回工具箱 (Esc)">M</button>
-              <span class="brand-name">请求工具</span>
+              <button id="btn-home" class="brand-mark as-btn" title="返回工具箱 (Esc)" data-i18n-title="nav.backHome">M</button>
+              <span class="brand-name" data-i18n="http.brandName">请求工具</span>
             </div>
             <div class="sidebar-actions">
-              <button id="btn-new-request" class="icon-btn" title="New request (⌘N)">+</button>
+              <button id="btn-new-request" class="icon-btn" title="New request (⌘N)" data-i18n-title="nav.newRequest">+</button>
             </div>
           </div>
 
           <div class="search-wrap">
-            <input id="search" class="search" type="search" placeholder="搜索请求…  ⌘K" spellcheck="false" />
+            <input id="search" class="search" type="search" placeholder="搜索请求…  ⌘K" data-i18n-placeholder="nav.searchPlaceholder" spellcheck="false" />
           </div>
 
           <div class="side-tabs" role="tablist">
-            <button class="side-tab is-active" data-side="collections" role="tab">集合</button>
-            <button class="side-tab" data-side="history" role="tab">历史</button>
+            <button class="side-tab is-active" data-side="collections" role="tab" data-i18n="nav.collections">集合</button>
+            <button class="side-tab" data-side="history" role="tab" data-i18n="nav.history">历史</button>
           </div>
 
           <div id="sidebar-scroll" class="sidebar-scroll">
@@ -67,10 +73,10 @@
           </div>
 
           <div class="sidebar-foot">
-            <button id="btn-new-collection" class="mini-btn" title="New collection">新建集合</button>
+            <button id="btn-new-collection" class="mini-btn" title="New collection" data-i18n-title="nav.newCollectionTitle" data-i18n="nav.newCollection">新建集合</button>
             <div class="env-row">
-              <select id="envSelect" class="env-select" title="Active environment"></select>
-              <button id="btn-env-manage" class="icon-btn" title="管理环境">⚙</button>
+              <select id="envSelect" class="env-select" title="Active environment" data-i18n-title="nav.envTitle"></select>
+              <button id="btn-env-manage" class="icon-btn" title="管理环境" data-i18n-title="nav.manageEnv">⚙</button>
             </div>
           </div>
         </aside>
@@ -78,18 +84,18 @@
         <main class="workspace" data-pane="workspace">
           <header class="titlebar drag-region">
             <div class="tabs" id="tabbar"></div>
-            <button id="btn-new-tab" class="icon-btn tab-add" title="New tab (⌘N)">+</button>
+            <button id="btn-new-tab" class="icon-btn tab-add" title="New tab (⌘N)" data-i18n-title="nav.newTab">+</button>
           </header>
 
           <section class="request-pane" data-pane="request">
             <div class="urlbar">
-              <select id="kindSelect" class="kind-select" title="Request type">
+              <select id="kindSelect" class="kind-select" title="Request type" data-i18n-title="http.requestTypeTitle">
                 <option value="http">HTTP</option>
                 <option value="ws">WS</option>
                 <option value="sse">SSE</option>
               </select>
               <div class="method-wrap">
-                <select id="methodSelect" class="method-select" title="HTTP method">
+                <select id="methodSelect" class="method-select" title="HTTP method" data-i18n-title="http.methodTitle">
                   <option>GET</option><option>POST</option><option>PUT</option><option>PATCH</option>
                   <option>DELETE</option><option>HEAD</option><option>OPTIONS</option>
                 </select>
@@ -98,67 +104,67 @@
                 <span id="urlKind" class="url-kind hidden">WS</span>
                 <input id="urlInput" class="url-input" type="text" placeholder="https://api.example.com/v1/things" spellcheck="false" autocomplete="off" />
               </div>
-              <button id="btn-send" class="send-btn">Send</button>
+              <button id="btn-send" class="send-btn" data-i18n="btn.send">Send</button>
               <div class="urlbar-actions">
-                <button id="btn-curl-export" class="icon-btn" title="复制为 cURL">cURL</button>
-                <button id="btn-curl-import" class="icon-btn" title="导入 cURL (⌘I)">⇩</button>
-                <button id="btn-save" class="save-btn" title="保存请求 (⌘S)">保存</button>
+                <button id="btn-curl-export" class="icon-btn" title="复制为 cURL" data-i18n-title="btn.copyAsCurl" data-i18n="btn.curl">cURL</button>
+                <button id="btn-curl-import" class="icon-btn" title="导入 cURL (⌘I)" data-i18n-title="btn.importCurl">⇩</button>
+                <button id="btn-save" class="save-btn" title="保存请求 (⌘S)" data-i18n-title="btn.saveTitle" data-i18n="btn.save">保存</button>
               </div>
             </div>
 
             <div class="req-subbar">
               <div class="req-tabs" role="tablist">
-                <button class="req-tab is-active" data-reqtab="params">Params <span class="badge" id="badge-params"></span></button>
-                <button class="req-tab" data-reqtab="headers">Headers <span class="badge" id="badge-headers"></span></button>
-                <button class="req-tab" data-reqtab="body">Body <span class="badge" id="badge-body"></span></button>
-                <button class="req-tab" data-reqtab="auth">Auth <span class="badge" id="badge-auth"></span></button>
-                <button class="req-tab" data-reqtab="cookies">Cookies <span class="badge" id="badge-cookies"></span></button>
+                <button class="req-tab is-active" data-reqtab="params"><span data-i18n="panel.params">Params</span> <span class="badge" id="badge-params"></span></button>
+                <button class="req-tab" data-reqtab="headers"><span data-i18n="panel.headers">Headers</span> <span class="badge" id="badge-headers"></span></button>
+                <button class="req-tab" data-reqtab="body"><span data-i18n="panel.body">Body</span> <span class="badge" id="badge-body"></span></button>
+                <button class="req-tab" data-reqtab="auth"><span data-i18n="panel.auth">Auth</span> <span class="badge" id="badge-auth"></span></button>
+                <button class="req-tab" data-reqtab="cookies"><span data-i18n="panel.cookies">Cookies</span> <span class="badge" id="badge-cookies"></span></button>
               </div>
               <div class="req-options">
-                <label class="chk"><input type="checkbox" id="opt-follow" checked /> follow redirects</label>
-                <label class="chk"><input type="checkbox" id="opt-insecure" /> allow insecure TLS</label>
-                <label class="chk"><input type="checkbox" id="opt-timing" checked /> timing</label>
+                <label class="chk"><input type="checkbox" id="opt-follow" checked /> <span data-i18n="http.optFollow">follow redirects</span></label>
+                <label class="chk"><input type="checkbox" id="opt-insecure" /> <span data-i18n="http.optInsecure">allow insecure TLS</span></label>
+                <label class="chk"><input type="checkbox" id="opt-timing" checked /> <span data-i18n="http.optTiming">timing</span></label>
               </div>
             </div>
 
             <div class="req-panels" data-pane="req-panels">
               <div class="panel is-active" data-panel="params">
                 <div class="table-head">
-                  <span class="col-chk"></span><span class="col-key">Key</span><span class="col-val">Value</span><span class="col-act"></span>
+                  <span class="col-chk"></span><span class="col-key" data-i18n="kv.key">Key</span><span class="col-val" data-i18n="kv.value">Value</span><span class="col-act"></span>
                 </div>
                 <div id="paramsTable" class="kv-table"></div>
-                <button class="ghost-btn" id="btn-add-param">+ 添加参数</button>
+                <button class="ghost-btn" id="btn-add-param" data-i18n="btn.addParam">+ 添加参数</button>
               </div>
 
               <div class="panel" data-panel="headers">
                 <div class="table-head">
-                  <span class="col-chk"></span><span class="col-key">Header</span><span class="col-val">Value</span><span class="col-act"></span>
+                  <span class="col-chk"></span><span class="col-key" data-i18n="kv.header">Header</span><span class="col-val" data-i18n="kv.value">Value</span><span class="col-act"></span>
                 </div>
                 <div id="headersTable" class="kv-table"></div>
                 <div class="row-btns">
-                  <button class="ghost-btn" id="btn-add-header">+ 添加 Header</button>
-                  <button class="ghost-btn" id="btn-header-preset">+ Content-Type: JSON</button>
+                  <button class="ghost-btn" id="btn-add-header" data-i18n="btn.addHeader">+ 添加 Header</button>
+                  <button class="ghost-btn" id="btn-header-preset" data-i18n="btn.headerPreset">+ Content-Type: JSON</button>
                 </div>
               </div>
 
               <div class="panel" data-panel="body">
                 <div class="body-head">
                   <div class="seg" id="bodyType">
-                    <button class="seg-btn is-active" data-bodytype="none">none</button>
-                    <button class="seg-btn" data-bodytype="json">JSON</button>
-                    <button class="seg-btn" data-bodytype="graphql">GraphQL</button>
-                    <button class="seg-btn" data-bodytype="form-urlencoded">x-www-form</button>
-                    <button class="seg-btn" data-bodytype="form-data">form-data</button>
-                    <button class="seg-btn" data-bodytype="text">raw</button>
-                    <button class="seg-btn" data-bodytype="binary">binary</button>
+                    <button class="seg-btn is-active" data-bodytype="none" data-i18n="body.typeNone">none</button>
+                    <button class="seg-btn" data-bodytype="json" data-i18n="body.typeJson">JSON</button>
+                    <button class="seg-btn" data-bodytype="graphql" data-i18n="body.typeGraphql">GraphQL</button>
+                    <button class="seg-btn" data-bodytype="form-urlencoded" data-i18n="body.typeFormUrlencoded">x-www-form</button>
+                    <button class="seg-btn" data-bodytype="form-data" data-i18n="body.typeFormData">form-data</button>
+                    <button class="seg-btn" data-bodytype="text" data-i18n="body.typeRaw">raw</button>
+                    <button class="seg-btn" data-bodytype="binary" data-i18n="body.typeBinary">binary</button>
                   </div>
                   <div class="body-tools">
-                    <button class="ghost-btn" id="btn-format-json">格式化 JSON</button>
+                    <button class="ghost-btn" id="btn-format-json" data-i18n="body.formatJson">格式化 JSON</button>
                   </div>
                 </div>
 
                 <div class="body-view" data-bodyview="none">
-                  <p class="muted">该请求没有 body。</p>
+                  <p class="muted" data-i18n="body.noneHint">该请求没有 body。</p>
                 </div>
 
                 <div class="body-view hidden" data-bodyview="json">
@@ -168,11 +174,11 @@
                 <div class="body-view hidden" data-bodyview="graphql">
                   <div class="gql-grid">
                     <div>
-                      <div class="mini-label">Query</div>
+                      <div class="mini-label" data-i18n="body.query">Query</div>
                       <textarea id="gql-query" class="code-area" spellcheck="false" placeholder="query { viewer { id } }"></textarea>
                     </div>
                     <div>
-                      <div class="mini-label">Variables (JSON)</div>
+                      <div class="mini-label" data-i18n="body.variables">Variables (JSON)</div>
                       <textarea id="gql-vars" class="code-area" spellcheck="false" placeholder='{ "id": 1 }'></textarea>
                     </div>
                   </div>
@@ -180,34 +186,34 @@
 
                 <div class="body-view hidden" data-bodyview="form-urlencoded">
                   <div class="table-head">
-                    <span class="col-chk"></span><span class="col-key">Key</span><span class="col-val">Value</span><span class="col-act"></span>
+                    <span class="col-chk"></span><span class="col-key" data-i18n="kv.key">Key</span><span class="col-val" data-i18n="kv.value">Value</span><span class="col-act"></span>
                   </div>
                   <div id="formUrlencodedTable" class="kv-table"></div>
-                  <button class="ghost-btn" id="btn-add-form-urlencoded">+ 添加字段</button>
+                  <button class="ghost-btn" id="btn-add-form-urlencoded" data-i18n="btn.addField">+ 添加字段</button>
                 </div>
 
                 <div class="body-view hidden" data-bodyview="form-data">
                   <div class="table-head">
-                    <span class="col-chk"></span><span class="col-key">Key</span><span class="col-val">Value</span><span class="col-act"></span>
+                    <span class="col-chk"></span><span class="col-key" data-i18n="kv.key">Key</span><span class="col-val" data-i18n="kv.value">Value</span><span class="col-act"></span>
                   </div>
                   <div id="formDataTable" class="kv-table"></div>
                   <div class="row-btns">
-                    <button class="ghost-btn" id="btn-add-form-data">+ 添加字段</button>
-                    <button class="ghost-btn" id="btn-add-file">+ 添加文件</button>
+                    <button class="ghost-btn" id="btn-add-form-data" data-i18n="btn.addField">+ 添加字段</button>
+                    <button class="ghost-btn" id="btn-add-file" data-i18n="btn.addFile">+ 添加文件</button>
                   </div>
                 </div>
 
                 <div class="body-view hidden" data-bodyview="text">
                   <div class="mini-row">
-                    <input id="body-contentType" class="mini-input" placeholder="Content-Type (e.g. text/plain)" spellcheck="false" />
+                    <input id="body-contentType" class="mini-input" placeholder="Content-Type (e.g. text/plain)" data-i18n-placeholder="body.contentTypePlaceholder" spellcheck="false" />
                   </div>
-                  <textarea id="body-text" class="code-area" spellcheck="false" placeholder="raw request body"></textarea>
+                  <textarea id="body-text" class="code-area" spellcheck="false" placeholder="raw request body" data-i18n-placeholder="body.rawPlaceholder"></textarea>
                 </div>
 
                 <div class="body-view hidden" data-bodyview="binary">
                   <div class="binary-row">
-                    <button class="ghost-btn" id="btn-pick-binary">选择文件…</button>
-                    <span id="binary-label" class="muted">未选择文件</span>
+                    <button class="ghost-btn" id="btn-pick-binary" data-i18n="btn.pickFile">选择文件…</button>
+                    <span id="binary-label" class="muted" data-i18n="body.noFile">未选择文件</span>
                   </div>
                 </div>
               </div>
@@ -215,24 +221,24 @@
               <div class="panel" data-panel="cookies">
               <div class="cookie-jar">
                 <div class="cookie-jar-head">
-                  <div class="mini-label">当前会话的 Cookie Jar <span id="cookieHost" class="muted small"></span></div>
+                  <div class="mini-label"><span data-i18n="cookie.jarTitle">当前会话的 Cookie Jar</span> <span id="cookieHost" class="muted small"></span></div>
                   <div class="row-btns">
-                    <button class="ghost-btn" id="btn-cookie-add">+ 手动添加</button>
-                    <button class="ghost-btn" id="btn-cookie-clear">清空</button>
+                    <button class="ghost-btn" id="btn-cookie-add" data-i18n="cookie.add">+ 手动添加</button>
+                    <button class="ghost-btn" id="btn-cookie-clear" data-i18n="btn.clear">清空</button>
                   </div>
                 </div>
                 <div class="table-head">
-                  <span class="col-chk"></span><span class="col-key">名称</span><span class="col-val">值</span><span class="col-act">域 / 过期</span>
+                  <span class="col-chk"></span><span class="col-key" data-i18n="cookie.name">名称</span><span class="col-val" data-i18n="cookie.value">值</span><span class="col-act" data-i18n="cookie.domain">域 / 过期</span>
                 </div>
                 <div id="cookieTable" class="kv-table cookie-table"></div>
-                <p class="muted small" id="cookieHint">勾选的 Cookie 会按域名与路径匹配自动附加到请求；响应里的 Set-Cookie 会自动存入。</p>
+                <p class="muted small" id="cookieHint" data-i18n="cookie.hint">勾选的 Cookie 会按域名与路径匹配自动附加到请求；响应里的 Set-Cookie 会自动存入。</p>
               </div>
             </div>
 
             <div class="panel" data-panel="auth">
                 <div class="auth-grid">
                   <label class="field">
-                    <span>类型</span>
+                    <span data-i18n="auth.type">类型</span>
                     <select id="authType">
                       <option value="none">无认证</option>
                       <option value="bearer">Bearer Token</option>
@@ -240,18 +246,18 @@
                       <option value="api-key">API Key</option>
                     </select>
                   </label>
-                  <div class="auth-fields" data-auth="none"><p class="muted">不发送任何认证信息。</p></div>
+                  <div class="auth-fields" data-auth="none"><p class="muted" data-i18n="auth.noneHint">不发送任何认证信息。</p></div>
                   <div class="auth-fields hidden" data-auth="bearer">
-                    <label class="field"><span>Token</span><input id="auth-token" class="mini-input" placeholder="eyJhbGciOi…" spellcheck="false" /></label>
+                    <label class="field"><span data-i18n="auth.token">Token</span><input id="auth-token" class="mini-input" placeholder="eyJhbGciOi…" spellcheck="false" /></label>
                   </div>
                   <div class="auth-fields hidden" data-auth="basic">
-                    <label class="field"><span>用户名</span><input id="auth-username" class="mini-input" spellcheck="false" /></label>
-                    <label class="field"><span>密码</span><input id="auth-password" class="mini-input" type="password" spellcheck="false" /></label>
+                    <label class="field"><span data-i18n="auth.username">用户名</span><input id="auth-username" class="mini-input" spellcheck="false" /></label>
+                    <label class="field"><span data-i18n="auth.password">密码</span><input id="auth-password" class="mini-input" type="password" spellcheck="false" /></label>
                   </div>
                   <div class="auth-fields hidden" data-auth="api-key">
-                    <label class="field"><span>Key</span><input id="auth-key" class="mini-input" placeholder="X-API-Key" spellcheck="false" /></label>
-                    <label class="field"><span>Value</span><input id="auth-value" class="mini-input" spellcheck="false" /></label>
-                    <label class="field"><span>添加到</span>
+                    <label class="field"><span data-i18n="kv.key">Key</span><input id="auth-key" class="mini-input" placeholder="X-API-Key" spellcheck="false" /></label>
+                    <label class="field"><span data-i18n="kv.value">Value</span><input id="auth-value" class="mini-input" spellcheck="false" /></label>
+                    <label class="field"><span data-i18n="auth.addTo">添加到</span>
                       <select id="auth-addto"><option value="header">Header</option><option value="query">Query 参数</option></select>
                     </label>
                   </div>
@@ -272,21 +278,21 @@
               </div>
               <div class="resp-tools">
                 <div class="resp-tabs" role="tablist">
-                  <button class="resp-tab is-active" data-resptab="pretty">Pretty</button>
-                  <button class="resp-tab" data-resptab="raw">Raw</button>
-                  <button class="resp-tab" data-resptab="headers">Headers</button>
-                  <button class="resp-tab" data-resptab="preview">Preview</button>
+                  <button class="resp-tab is-active" data-resptab="pretty" data-i18n="resp.tabPretty">Pretty</button>
+                  <button class="resp-tab" data-resptab="raw" data-i18n="resp.tabRaw">Raw</button>
+                  <button class="resp-tab" data-resptab="headers" data-i18n="resp.tabHeaders">Headers</button>
+                  <button class="resp-tab" data-resptab="preview" data-i18n="resp.tabPreview">Preview</button>
                 </div>
-                <button id="btn-copy-resp" class="ghost-btn" title="复制响应体">复制</button>
-                <button id="btn-clear-resp" class="ghost-btn" title="清空">清空</button>
+                <button id="btn-copy-resp" class="ghost-btn" title="复制响应体" data-i18n-title="resp.copyTitle" data-i18n="btn.copy">复制</button>
+                <button id="btn-clear-resp" class="ghost-btn" title="清空" data-i18n-title="btn.clear" data-i18n="btn.clear">清空</button>
               </div>
             </div>
 
             <div class="resp-body">
               <div id="respEmpty" class="empty">
                 <div class="empty-mark">⌁</div>
-                <h2>发一个请求</h2>
-                <p class="muted">⌘/Ctrl + Enter 发送 · ⌘/Ctrl + I 导入 cURL</p>
+                <h2 data-i18n="resp.emptyTitle">发一个请求</h2>
+                <p class="muted" data-i18n="resp.emptyHint">⌘/Ctrl + Enter 发送 · ⌘/Ctrl + I 导入 cURL</p>
               </div>
               <div id="respPretty" class="resp-view hidden"></div>
               <pre id="respRaw" class="resp-view code hidden"></pre>
@@ -302,14 +308,14 @@
                 <span id="streamCount" class="meta-chip hidden"></span>
               </div>
               <div class="resp-tools">
-                <button id="btn-stream-clear" class="ghost-btn">清空</button>
-                <button id="btn-stream-close" class="ghost-btn">断开</button>
+                <button id="btn-stream-clear" class="ghost-btn" data-i18n="btn.clear">清空</button>
+                <button id="btn-stream-close" class="ghost-btn" data-i18n="stream.disconnect">断开</button>
               </div>
             </div>
             <div id="streamLog" class="stream-log"></div>
             <div class="stream-compose">
-              <input id="streamInput" class="mini-input" placeholder="要发送的消息（WS）…" spellcheck="false" />
-              <button id="btn-stream-send" class="send-btn small">发送</button>
+              <input id="streamInput" class="mini-input" placeholder="要发送的消息（WS）…" data-i18n-placeholder="stream.messagePlaceholder" spellcheck="false" />
+              <button id="btn-stream-send" class="send-btn small" data-i18n="stream.send">发送</button>
             </div>
           </section>
         </main>
@@ -319,8 +325,8 @@
     <!-- ======================= ESCAPE ======================= -->
     <section class="view tool-view" id="view-escape" data-view="escape">
       <header class="tool-head drag-region">
-        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
-        <h2>字符转义 / 去转义</h2>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)" data-i18n-title="nav.backHome">M</button>
+        <h2 data-i18n="tool.escape.title">字符转义 / 去转义</h2>
         <div class="tool-head-actions">
           <select id="esc-mode" class="mini-select">
             <option value="js">JavaScript 字符串</option>
@@ -329,69 +335,69 @@
             <option value="html">HTML 实体</option>
             <option value="unicode">Unicode \\uXXXX</option>
           </select>
-          <button id="esc-do" class="btn-primary">转义 →</button>
-          <button id="esc-undo" class="btn-secondary">← 去转义</button>
+          <button id="esc-do" class="btn-primary" data-i18n="escape.do">转义 →</button>
+          <button id="esc-undo" class="btn-secondary" data-i18n="escape.undo">← 去转义</button>
         </div>
       </header>
       <div class="tool-body two-pane" data-split="x" data-split-key="tool.escape">
         <div class="pane">
           <div class="pane-head">
-            <span>输入</span>
+            <span data-i18n="escape.inputLabel">输入</span>
             <span class="pane-actions">
-              <button class="ghost-btn" data-clipboard-from="esc-in">粘贴</button>
-              <button class="ghost-btn" data-clear="esc-in">清空</button>
+              <button class="ghost-btn" data-clipboard-from="esc-in" data-i18n="btn.paste">粘贴</button>
+              <button class="ghost-btn" data-clear="esc-in" data-i18n="btn.clear">清空</button>
             </span>
           </div>
-          <textarea id="esc-in" class="code-area fill" spellcheck="false" placeholder="在这里输入要转义的内容…"></textarea>
+          <textarea id="esc-in" class="code-area fill" spellcheck="false" placeholder="在这里输入要转义的内容…" data-i18n-placeholder="escape.inputPlaceholder"></textarea>
         </div>
         <div class="pane">
           <div class="pane-head">
-            <span>输出</span>
+            <span data-i18n="escape.outputLabel">输出</span>
             <span class="pane-actions">
-              <button class="ghost-btn" data-copy-from="esc-out">复制</button>
-              <button class="ghost-btn" id="esc-swap">⇄ 交换</button>
+              <button class="ghost-btn" data-copy-from="esc-out" data-i18n="btn.copy">复制</button>
+              <button class="ghost-btn" id="esc-swap" data-i18n="btn.swap">⇄ 交换</button>
             </span>
           </div>
-          <textarea id="esc-out" class="code-area fill" spellcheck="false" readonly placeholder="结果显示在这里"></textarea>
+          <textarea id="esc-out" class="code-area fill" spellcheck="false" readonly placeholder="结果显示在这里" data-i18n-placeholder="escape.outputPlaceholder"></textarea>
         </div>
       </div>
-      <div class="tool-status"><span id="esc-note" class="muted small">双向转换，输入后即时出结果</span></div>
+      <div class="tool-status"><span id="esc-note" class="muted small" data-i18n="escape.note">双向转换，输入后即时出结果</span></div>
     </section>
 
     <!-- ======================= JSON ======================= -->
     <section class="view tool-view" id="view-json" data-view="json">
       <header class="tool-head drag-region">
-        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
-        <h2>JSON 格式化</h2>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)" data-i18n-title="nav.backHome">M</button>
+        <h2 data-i18n="tool.json.title">JSON 格式化</h2>
         <div class="tool-head-actions">
-          <button id="json-format2" class="btn-secondary">格式化 2 空格</button>
-          <button id="json-format4" class="btn-secondary">4 空格</button>
-          <button id="json-minify" class="btn-secondary">压缩</button>
-          <button id="json-sort" class="btn-secondary">键排序</button>
-          <button id="json-validate" class="btn-primary">校验</button>
+          <button id="json-format2" class="btn-secondary" data-i18n="json.format2">格式化 2 空格</button>
+          <button id="json-format4" class="btn-secondary" data-i18n="json.format4">4 空格</button>
+          <button id="json-minify" class="btn-secondary" data-i18n="json.minify">压缩</button>
+          <button id="json-sort" class="btn-secondary" data-i18n="json.sort">键排序</button>
+          <button id="json-validate" class="btn-primary" data-i18n="btn.validate">校验</button>
         </div>
       </header>
       <div class="tool-body two-pane" data-split="x" data-split-key="tool.json">
         <div class="pane">
           <div class="pane-head">
-            <span>输入 JSON</span>
-            <span class="pane-actions"><button class="ghost-btn" data-clear="json-in">清空</button></span>
+            <span data-i18n="json.inputLabel">输入 JSON</span>
+            <span class="pane-actions"><button class="ghost-btn" data-clear="json-in" data-i18n="btn.clear">清空</button></span>
           </div>
           <textarea id="json-in" class="code-area fill" spellcheck="false" placeholder='{"hello":"mozi"}'></textarea>
         </div>
         <div class="pane">
           <div class="pane-head">
-            <span>结果</span>
+            <span data-i18n="label.result">结果</span>
             <span class="pane-actions">
-              <button class="ghost-btn" data-copy-from="json-out">复制</button>
-              <button class="ghost-btn" id="json-swap">⇄ 结果回填</button>
+              <button class="ghost-btn" data-copy-from="json-out" data-i18n="btn.copy">复制</button>
+              <button class="ghost-btn" id="json-swap" data-i18n="json.swap">⇄ 结果回填</button>
             </span>
           </div>
-          <textarea id="json-out" class="code-area fill" spellcheck="false" readonly placeholder="格式化后的结果"></textarea>
+          <textarea id="json-out" class="code-area fill" spellcheck="false" readonly placeholder="格式化后的结果" data-i18n-placeholder="json.outputPlaceholder"></textarea>
         </div>
       </div>
       <div class="tool-status">
-        <span id="json-status" class="muted small">等待输入…</span>
+        <span id="json-status" class="muted small" data-i18n="json.statusIdle">等待输入…</span>
         <span id="json-stats" class="muted small"></span>
       </div>
     </section>
@@ -399,13 +405,13 @@
     <!-- ======================= BASE64 (text + images) ======================= -->
     <section class="view tool-view" id="view-base64" data-view="base64">
       <header class="tool-head drag-region">
-        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
-        <h2>Base64 工具箱</h2>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)" data-i18n-title="nav.backHome">M</button>
+        <h2 data-i18n="tool.base64.title">Base64 工具箱</h2>
         <div class="tool-head-actions">
           <div class="seg" id="b64-tabs">
-            <button class="seg-btn is-active" data-b64tab="text">文本加解密</button>
-            <button class="seg-btn" data-b64tab="to-base64">图片 → Base64</button>
-            <button class="seg-btn" data-b64tab="to-image">Base64 → 图片</button>
+            <button class="seg-btn is-active" data-b64tab="text" data-i18n="b64.tabText">文本加解密</button>
+            <button class="seg-btn" data-b64tab="to-base64" data-i18n="b64.tabToBase64">图片 → Base64</button>
+            <button class="seg-btn" data-b64tab="to-image" data-i18n="b64.tabToImage">Base64 → 图片</button>
           </div>
         </div>
       </header>
@@ -417,64 +423,64 @@
               <option value="encode">文本 → Base64</option>
               <option value="decode">Base64 → 文本</option>
             </select>
-            <label class="chk"><input type="checkbox" id="b64-urlsafe" /> URL-safe</label>
-            <button id="b64-run" class="btn-primary">转换</button>
-            <button id="b64-swap" class="btn-secondary">⇄ 交换</button>
+            <label class="chk"><input type="checkbox" id="b64-urlsafe" /> <span data-i18n="b64.urlSafe">URL-safe</span></label>
+            <button id="b64-run" class="btn-primary" data-i18n="btn.convert">转换</button>
+            <button id="b64-swap" class="btn-secondary" data-i18n="btn.swap">⇄ 交换</button>
             <span id="b64-stats" class="muted small"></span>
           </div>
           <div class="two-pane" data-split="x" data-split-key="tool.b64.text">
             <div class="pane">
               <div class="pane-head">
-                <span id="b64-in-label">明文</span>
-                <span class="pane-actions"><button class="ghost-btn" data-clear="b64-in">清空</button></span>
+                <span id="b64-in-label" data-i18n="label.plaintext">明文</span>
+                <span class="pane-actions"><button class="ghost-btn" data-clear="b64-in" data-i18n="btn.clear">清空</button></span>
               </div>
-              <textarea id="b64-in" class="code-area fill" spellcheck="false" placeholder="输入文本或 Base64…"></textarea>
+              <textarea id="b64-in" class="code-area fill" spellcheck="false" placeholder="输入文本或 Base64…" data-i18n-placeholder="b64.inputPlaceholder"></textarea>
             </div>
             <div class="pane">
               <div class="pane-head">
-                <span id="b64-out-label">Base64</span>
-                <span class="pane-actions"><button class="ghost-btn" data-copy-from="b64-out">复制</button></span>
+                <span id="b64-out-label" data-i18n="label.base64">Base64</span>
+                <span class="pane-actions"><button class="ghost-btn" data-copy-from="b64-out" data-i18n="btn.copy">复制</button></span>
               </div>
-              <textarea id="b64-out" class="code-area fill" spellcheck="false" readonly placeholder="结果"></textarea>
+              <textarea id="b64-out" class="code-area fill" spellcheck="false" readonly placeholder="结果" data-i18n-placeholder="b64.outputPlaceholder"></textarea>
             </div>
           </div>
-          <div class="tool-status"><span id="b64-note" class="muted small">支持 UTF-8 中文，自动处理换行与填充</span></div>
+          <div class="tool-status"><span id="b64-note" class="muted small" data-i18n="b64.note">支持 UTF-8 中文，自动处理换行与填充</span></div>
         </div>
 
         <div class="b64-panel hidden" data-b64panel="to-base64">
           <div class="panel-toolbar">
-            <button class="btn-primary" id="img2-pick">选择图片…</button>
-            <button class="btn-secondary" id="img2-copy-base64">复制 Base64</button>
-            <button class="btn-secondary" id="img2-copy-dataurl">复制 Data URL</button>
-            <span id="img2-note" class="muted small">支持 PNG / JPG / GIF / WebP / SVG / ICO</span>
+            <button class="btn-primary" id="img2-pick" data-i18n="img.pick">选择图片…</button>
+            <button class="btn-secondary" id="img2-copy-base64" data-i18n="img.copyBase64">复制 Base64</button>
+            <button class="btn-secondary" id="img2-copy-dataurl" data-i18n="img.copyDataUrl">复制 Data URL</button>
+            <span id="img2-note" class="muted small" data-i18n="img.supported">支持 PNG / JPG / GIF / WebP / SVG / ICO</span>
           </div>
           <div class="two-pane" data-split="x" data-split-key="tool.img.toBase64">
             <div class="pane">
-              <div class="pane-head"><span>预览</span><span class="muted small">选择本地图片后显示</span></div>
-              <div id="img2-preview" class="img-preview"><span class="muted">还没有选择图片</span></div>
+              <div class="pane-head"><span data-i18n="label.preview">预览</span><span class="muted small" data-i18n="img.previewHint">选择本地图片后显示</span></div>
+              <div id="img2-preview" class="img-preview"><span class="muted" data-i18n="img.noImage">还没有选择图片</span></div>
             </div>
             <div class="pane">
-              <div class="pane-head"><span>Base64</span><span class="muted small">可直接复制</span></div>
-              <textarea id="img2-out" class="code-area fill" spellcheck="false" readonly placeholder="转换结果"></textarea>
+              <div class="pane-head"><span data-i18n="label.base64">Base64</span><span class="muted small" data-i18n="img.base64Hint">可直接复制</span></div>
+              <textarea id="img2-out" class="code-area fill" spellcheck="false" readonly placeholder="转换结果" data-i18n-placeholder="img.resultPlaceholder"></textarea>
             </div>
           </div>
         </div>
 
         <div class="b64-panel hidden" data-b64panel="to-image">
           <div class="panel-toolbar">
-            <button class="btn-primary" id="img-render">渲染</button>
-            <button class="btn-secondary" id="img-save">保存图片</button>
-            <button class="ghost-btn" data-clear="img-in">清空</button>
-            <span id="img-note" class="muted small">粘贴 Base64 或 Data URL，自动预览</span>
+            <button class="btn-primary" id="img-render" data-i18n="img.render">渲染</button>
+            <button class="btn-secondary" id="img-save" data-i18n="img.save">保存图片</button>
+            <button class="ghost-btn" data-clear="img-in" data-i18n="btn.clear">清空</button>
+            <span id="img-note" class="muted small" data-i18n="img.inputHint">粘贴 Base64 或 Data URL，自动预览</span>
           </div>
           <div class="two-pane" data-split="x" data-split-key="tool.img.toImage">
             <div class="pane">
-              <div class="pane-head"><span>Base64 或 Data URL</span><span class="muted small">支持纯 Base64</span></div>
+              <div class="pane-head"><span data-i18n="img.inputLabel">Base64 或 Data URL</span><span class="muted small" data-i18n="img.plainHint">支持纯 Base64</span></div>
               <textarea id="img-in" class="code-area fill" spellcheck="false" placeholder="data:image/png;base64,iVBORw0KGgo…"></textarea>
             </div>
             <div class="pane">
-              <div class="pane-head"><span>预览</span><span class="muted small">含尺寸与体积</span></div>
-              <div id="img-preview" class="img-preview"><span class="muted">还没有可预览的图片</span></div>
+              <div class="pane-head"><span data-i18n="label.preview">预览</span><span class="muted small" data-i18n="img.sizeHint">含尺寸与体积</span></div>
+              <div id="img-preview" class="img-preview"><span class="muted" data-i18n="img.noPreview">还没有可预览的图片</span></div>
             </div>
           </div>
         </div>
@@ -484,24 +490,32 @@
     <!-- ======================= MARKDOWN ======================= -->
     <section class="view tool-view" id="view-markdown" data-view="markdown">
       <header class="tool-head drag-region">
-        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
-        <h2>Markdown 编辑器</h2>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)" data-i18n-title="nav.backHome">M</button>
+        <h2 data-i18n="tool.markdown.title">Markdown 编辑器</h2>
         <div class="tool-head-actions">
-          <button class="btn-secondary" id="md-open">打开 .md 文件…</button>
-          <button class="btn-secondary" id="md-image">插入图片</button>
-          <button class="btn-secondary" id="md-sample">插入示例</button>
-          <button class="btn-secondary" id="md-copy-html">复制 HTML</button>
-          <button class="btn-secondary" id="md-export">导出 HTML</button>
-          <button class="btn-secondary" id="md-clear">清空</button>
+          <button class="btn-secondary" id="md-open" data-i18n="md.open">打开 .md 文件…</button>
+          <button class="btn-secondary" id="md-image" data-i18n="md.insertImage">插入图片</button>
+          <button class="btn-secondary" id="md-full" data-i18n="md.fullscreen">全屏预览</button>
+          <button class="btn-secondary" id="md-sample" data-i18n="btn.insertSample">插入示例</button>
+          <button class="btn-secondary" id="md-copy-html" data-i18n="md.copyHtml">复制 HTML</button>
+          <button class="btn-secondary" id="md-export" data-i18n="md.exportHtml">导出 HTML</button>
+          <button class="btn-secondary" id="md-clear" data-i18n="btn.clear">清空</button>
         </div>
       </header>
       <div class="tool-body md-body" data-split="x" data-split-key="tool.md">
         <div class="pane">
-          <div class="pane-head"><span>Markdown</span><span id="md-stats" class="muted small"></span></div>
-          <textarea id="md-in" class="code-area fill" spellcheck="false" placeholder="# 标题&#10;&#10;开始写 Markdown…"></textarea>
+          <div class="pane-head"><span data-i18n="md.paneLabel">Markdown</span><span id="md-stats" class="muted small"></span></div>
+          <textarea id="md-in" class="code-area fill" spellcheck="false" placeholder="# 标题&#10;&#10;开始写 Markdown…" data-i18n-placeholder="md.inputPlaceholder"></textarea>
         </div>
         <div class="pane">
-          <div class="pane-head"><span>预览</span><span class="muted small">支持图片与 ```mermaid 流程图</span></div>
+          <div class="pane-head">
+            <span data-i18n="label.preview">预览</span>
+            <span id="md-base" class="muted small md-base" title="" data-i18n-title="md.baseDirHint"></span>
+            <span class="muted small" data-i18n="md.previewHint">支持图片与 ```mermaid 流程图</span>
+          </div>
+          <button class="md-fullscreen-exit" id="md-exit-full" type="button">
+            <span data-i18n="md.exitFullscreen">退出全屏</span><kbd>Esc</kbd>
+          </button>
           <div id="md-preview" class="md-preview"></div>
         </div>
       </div>
@@ -510,36 +524,36 @@
     <!-- ======================= TIMESTAMP ======================= -->
     <section class="view tool-view" id="view-timestamp" data-view="timestamp">
       <header class="tool-head drag-region">
-        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
-        <h2>时间戳转换</h2>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)" data-i18n-title="nav.backHome">M</button>
+        <h2 data-i18n="tool.timestamp.title">时间戳转换</h2>
         <div class="tool-head-actions">
-          <button class="btn-primary" id="ts-now">现在</button>
+          <button class="btn-primary" id="ts-now" data-i18n="timestamp.now">现在</button>
           <span id="ts-clock" class="meta-chip"></span>
         </div>
       </header>
       <div class="tool-body ts-body">
         <div class="ts-card">
-          <div class="mini-label">Unix 时间戳（秒 / 毫秒自动识别）</div>
-          <input id="ts-input" class="mini-input" placeholder="1793955829 或 1793955829000" spellcheck="false" />
+          <div class="mini-label" data-i18n="timestamp.inputLabel">Unix 时间戳（秒 / 毫秒自动识别）</div>
+          <input id="ts-input" class="mini-input" placeholder="1793955829 或 1793955829000" data-i18n-placeholder="timestamp.inputPlaceholder" spellcheck="false" />
           <div class="ts-out">
-            <div class="ts-row"><span class="ts-key">本地</span><span id="ts-local" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-local" title="复制">⧉</button></div>
-            <div class="ts-row"><span class="ts-key">UTC</span><span id="ts-utc" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-utc" title="复制">⧉</button></div>
-            <div class="ts-row"><span class="ts-key">ISO</span><span id="ts-iso" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-iso" title="复制">⧉</button></div>
-            <div class="ts-row"><span class="ts-key">相对</span><span id="ts-rel" class="ts-val muted"></span></div>
+            <div class="ts-row"><span class="ts-key" data-i18n="timestamp.local">本地</span><span id="ts-local" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-local" title="复制" data-i18n-title="btn.copy">⧉</button></div>
+            <div class="ts-row"><span class="ts-key" data-i18n="timestamp.utc">UTC</span><span id="ts-utc" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-utc" title="复制" data-i18n-title="btn.copy">⧉</button></div>
+            <div class="ts-row"><span class="ts-key" data-i18n="timestamp.iso">ISO</span><span id="ts-iso" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-iso" title="复制" data-i18n-title="btn.copy">⧉</button></div>
+            <div class="ts-row"><span class="ts-key" data-i18n="timestamp.relative">相对</span><span id="ts-rel" class="ts-val muted"></span></div>
           </div>
         </div>
 
         <div class="ts-card">
-          <div class="mini-label">日期 → 时间戳</div>
+          <div class="mini-label" data-i18n="timestamp.dateLabel">日期 → 时间戳</div>
           <input id="ts-date" class="mini-input" type="datetime-local" step="1" />
           <div class="ts-out">
-            <div class="ts-row"><span class="ts-key">秒</span><span id="ts-sec" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-sec" title="复制">⧉</button></div>
-            <div class="ts-row"><span class="ts-key">毫秒</span><span id="ts-ms" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-ms" title="复制">⧉</button></div>
+            <div class="ts-row"><span class="ts-key" data-i18n="timestamp.seconds">秒</span><span id="ts-sec" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-sec" title="复制" data-i18n-title="btn.copy">⧉</button></div>
+            <div class="ts-row"><span class="ts-key" data-i18n="timestamp.millis">毫秒</span><span id="ts-ms" class="ts-val"></span><button class="mini-icon" data-copy-from-el="ts-ms" title="复制" data-i18n-title="btn.copy">⧉</button></div>
           </div>
         </div>
 
         <div class="ts-card">
-          <div class="mini-label">常用时区对照</div>
+          <div class="mini-label" data-i18n="timestamp.zonesLabel">常用时区对照</div>
           <div id="ts-zones" class="ts-zones"></div>
         </div>
       </div>
@@ -548,51 +562,51 @@
     <!-- ======================= JWT ======================= -->
     <section class="view tool-view" id="view-jwt" data-view="jwt">
       <header class="tool-head drag-region">
-        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
-        <h2>JWT 解析</h2>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)" data-i18n-title="nav.backHome">M</button>
+        <h2 data-i18n="tool.jwt.title">JWT 解析</h2>
         <div class="tool-head-actions">
-          <button class="btn-secondary" data-clear="jwt-in">清空</button>
-          <button class="btn-secondary" id="jwt-sample">插入示例</button>
+          <button class="btn-secondary" data-clear="jwt-in" data-i18n="btn.clear">清空</button>
+          <button class="btn-secondary" id="jwt-sample" data-i18n="btn.insertSample">插入示例</button>
         </div>
       </header>
       <div class="tool-body jwt-body" data-split="x" data-split-key="tool.jwt">
         <div class="jwt-left">
           <div class="pane">
-            <div class="pane-head"><span>Token</span><span id="jwt-alg" class="muted small"></span></div>
+            <div class="pane-head"><span data-i18n="jwt.tokenLabel">Token</span><span id="jwt-alg" class="muted small"></span></div>
             <textarea id="jwt-in" class="code-area fill" spellcheck="false" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…"></textarea>
           </div>
           <div class="pane jwt-verify">
-            <div class="pane-head"><span>HS256 验签（可选）</span></div>
+            <div class="pane-head"><span data-i18n="jwt.verifyLabel">HS256 验签（可选）</span></div>
             <div class="jwt-verify-row">
-              <input id="jwt-secret" class="mini-input" type="text" placeholder="输入密钥后点验证" spellcheck="false" />
-              <button class="btn-primary" id="jwt-verify">验证</button>
+              <input id="jwt-secret" class="mini-input" type="text" placeholder="输入密钥后点验证" data-i18n-placeholder="jwt.secretPlaceholder" spellcheck="false" />
+              <button class="btn-primary" id="jwt-verify" data-i18n="jwt.verify">验证</button>
             </div>
             <div id="jwt-verify-out" class="muted small"></div>
           </div>
         </div>
         <div class="jwt-right">
           <div class="pane">
-            <div class="pane-head"><span>Header</span><button class="ghost-btn" data-copy-from-el="jwt-header">复制</button></div>
+            <div class="pane-head"><span data-i18n="jwt.header">Header</span><button class="ghost-btn" data-copy-from-el="jwt-header" data-i18n="btn.copy">复制</button></div>
             <pre id="jwt-header" class="code-area fill code jwt-json"></pre>
           </div>
           <div class="pane">
-            <div class="pane-head"><span>Payload</span><button class="ghost-btn" data-copy-from-el="jwt-payload">复制</button></div>
+            <div class="pane-head"><span data-i18n="jwt.payload">Payload</span><button class="ghost-btn" data-copy-from-el="jwt-payload" data-i18n="btn.copy">复制</button></div>
             <pre id="jwt-payload" class="code-area fill code jwt-json"></pre>
           </div>
         </div>
       </div>
-      <div class="tool-status"><span id="jwt-note" class="muted small">粘贴 token 自动解析；数据只在本机处理</span></div>
+      <div class="tool-status"><span id="jwt-note" class="muted small" data-i18n="jwt.note">粘贴 token 自动解析；数据只在本机处理</span></div>
     </section>
 
     <!-- ======================= HASH ======================= -->
     <section class="view tool-view" id="view-hash" data-view="hash">
       <header class="tool-head drag-region">
-        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
-        <h2>Hash 摘要</h2>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)" data-i18n-title="nav.backHome">M</button>
+        <h2 data-i18n="tool.hash.title">Hash 摘要</h2>
         <div class="tool-head-actions">
           <div class="seg" id="hash-tabs">
-            <button class="seg-btn is-active" data-hashtab="text">文本</button>
-            <button class="seg-btn" data-hashtab="file">文件</button>
+            <button class="seg-btn is-active" data-hashtab="text" data-i18n="hash.tabText">文本</button>
+            <button class="seg-btn" data-hashtab="file" data-i18n="hash.tabFile">文件</button>
           </div>
         </div>
       </header>
@@ -600,39 +614,39 @@
         <div class="hash-panel" data-hashpanel="text">
           <div class="pane">
             <div class="pane-head">
-              <span>输入文本</span>
+              <span data-i18n="hash.inputLabel">输入文本</span>
               <span class="pane-actions">
                 <select id="hash-enc" class="mini-select"><option value="utf8">UTF-8</option><option value="hex">Hex</option><option value="base64">Base64</option></select>
-                <button class="ghost-btn" data-clear="hash-in">清空</button>
+                <button class="ghost-btn" data-clear="hash-in" data-i18n="btn.clear">清空</button>
               </span>
             </div>
-            <textarea id="hash-in" class="code-area fill" spellcheck="false" placeholder="输入要计算摘要的文本…"></textarea>
+            <textarea id="hash-in" class="code-area fill" spellcheck="false" placeholder="输入要计算摘要的文本…" data-i18n-placeholder="hash.inputPlaceholder"></textarea>
           </div>
           <div class="pane">
-            <div class="pane-head"><span>结果</span><span class="pane-actions"><button class="ghost-btn" id="hash-copy-all">复制全部</button></span></div>
+            <div class="pane-head"><span data-i18n="label.result">结果</span><span class="pane-actions"><button class="ghost-btn" id="hash-copy-all" data-i18n="btn.copyAll">复制全部</button></span></div>
             <div id="hash-out" class="hash-out"></div>
           </div>
         </div>
         <div class="hash-panel hidden" data-hashpanel="file">
           <div class="panel-toolbar">
-            <button class="btn-primary" id="hash-pick">选择文件…</button>
-            <span class="muted small">MD5 / SHA-1 / SHA-256 / SHA-512 一次算完</span>
+            <button class="btn-primary" id="hash-pick" data-i18n="btn.pickFile">选择文件…</button>
+            <span class="muted small" data-i18n="hash.algoHint">MD5 / SHA-1 / SHA-256 / SHA-512 一次算完</span>
           </div>
-          <div id="hash-file-out" class="hash-out"><span class="muted">还没有计算过文件</span></div>
+          <div id="hash-file-out" class="hash-out"><span class="muted" data-i18n="hash.noFile">还没有计算过文件</span></div>
         </div>
       </div>
-      <div class="tool-status"><span id="hash-note" class="muted small">本地计算，不发送任何数据</span></div>
+      <div class="tool-status"><span id="hash-note" class="muted small" data-i18n="hash.note">本地计算，不发送任何数据</span></div>
     </section>
 
     <!-- ======================= GENERATOR ======================= -->
     <section class="view tool-view" id="view-generator" data-view="generator">
       <header class="tool-head drag-region">
-        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
-        <h2>UUID / 密码生成</h2>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)" data-i18n-title="nav.backHome">M</button>
+        <h2 data-i18n="tool.generator.title">UUID / 密码生成</h2>
         <div class="tool-head-actions">
           <div class="seg" id="gen-tabs">
-            <button class="seg-btn is-active" data-gentab="uuid">UUID</button>
-            <button class="seg-btn" data-gentab="password">密码</button>
+            <button class="seg-btn is-active" data-gentab="uuid" data-i18n="gen.tabUuid">UUID</button>
+            <button class="seg-btn" data-gentab="password" data-i18n="gen.tabPassword">密码</button>
           </div>
         </div>
       </header>
@@ -643,43 +657,43 @@
               <option value="v4">UUID v4（随机）</option>
               <option value="v7">UUID v7（时间有序）</option>
             </select>
-            <label class="field-inline"><span>数量</span><input id="uuid-count" class="mini-input tiny" type="number" min="1" max="500" value="10" /></label>
-            <label class="chk"><input type="checkbox" id="uuid-upper" /> 大写</label>
-            <label class="chk"><input type="checkbox" id="uuid-braces" /> 花括号</label>
-            <button class="btn-primary" id="uuid-gen">生成</button>
-            <button class="btn-secondary" id="uuid-copy">复制全部</button>
+            <label class="field-inline"><span data-i18n="gen.count">数量</span><input id="uuid-count" class="mini-input tiny" type="number" min="1" max="500" value="10" /></label>
+            <label class="chk"><input type="checkbox" id="uuid-upper" /> <span data-i18n="gen.upper">大写</span></label>
+            <label class="chk"><input type="checkbox" id="uuid-braces" /> <span data-i18n="gen.braces">花括号</span></label>
+            <button class="btn-primary" id="uuid-gen" data-i18n="btn.generate">生成</button>
+            <button class="btn-secondary" id="uuid-copy" data-i18n="btn.copyAll">复制全部</button>
           </div>
           <textarea id="uuid-out" class="code-area fill" spellcheck="false" readonly></textarea>
         </div>
         <div class="gen-panel hidden" data-genpanel="password">
           <div class="panel-toolbar">
-            <label class="field-inline"><span>长度</span><input id="pw-len" class="mini-input tiny" type="number" min="4" max="128" value="20" /></label>
-            <label class="field-inline"><span>数量</span><input id="pw-count" class="mini-input tiny" type="number" min="1" max="100" value="5" /></label>
+            <label class="field-inline"><span data-i18n="gen.length">长度</span><input id="pw-len" class="mini-input tiny" type="number" min="4" max="128" value="20" /></label>
+            <label class="field-inline"><span data-i18n="gen.count">数量</span><input id="pw-count" class="mini-input tiny" type="number" min="1" max="100" value="5" /></label>
             <label class="chk"><input type="checkbox" id="pw-upper" checked /> A-Z</label>
             <label class="chk"><input type="checkbox" id="pw-lower" checked /> a-z</label>
             <label class="chk"><input type="checkbox" id="pw-digit" checked /> 0-9</label>
             <label class="chk"><input type="checkbox" id="pw-symbol" checked /> !@#$…</label>
-            <label class="chk"><input type="checkbox" id="pw-ambiguous" /> 含易混淆字符</label>
-            <button class="btn-primary" id="pw-gen">生成</button>
-            <button class="btn-secondary" id="pw-copy">复制全部</button>
+            <label class="chk"><input type="checkbox" id="pw-ambiguous" /> <span data-i18n="gen.ambiguous">含易混淆字符</span></label>
+            <button class="btn-primary" id="pw-gen" data-i18n="btn.generate">生成</button>
+            <button class="btn-secondary" id="pw-copy" data-i18n="btn.copyAll">复制全部</button>
           </div>
           <div class="two-pane" data-split="x" data-split-key="tool.pw">
             <textarea id="pw-out" class="code-area fill" spellcheck="false" readonly></textarea>
             <div class="pane">
-              <div class="pane-head"><span>强度估算</span></div>
-              <div id="pw-strength" class="pw-strength"><span class="muted">生成后显示</span></div>
+              <div class="pane-head"><span data-i18n="gen.strengthLabel">强度估算</span></div>
+              <div id="pw-strength" class="pw-strength"><span class="muted" data-i18n="gen.strengthPlaceholder">生成后显示</span></div>
             </div>
           </div>
         </div>
       </div>
-      <div class="tool-status"><span id="gen-note" class="muted small">使用 Web Crypto 安全随机源</span></div>
+      <div class="tool-status"><span id="gen-note" class="muted small" data-i18n="gen.note">使用 Web Crypto 安全随机源</span></div>
     </section>
 
     <!-- ======================= REGEX ======================= -->
     <section class="view tool-view" id="view-regex" data-view="regex">
       <header class="tool-head drag-region">
-        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
-        <h2>正则测试</h2>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)" data-i18n-title="nav.backHome">M</button>
+        <h2 data-i18n="tool.regex.title">正则测试</h2>
         <div class="tool-head-actions">
           <div class="rx-flags" id="rx-flags">
             <label class="chk"><input type="checkbox" data-flag="g" checked />g</label>
@@ -699,26 +713,26 @@
         </div>
         <div class="two-pane" data-split="x" data-split-key="tool.regex">
           <div class="pane">
-            <div class="pane-head"><span>测试文本</span><span class="pane-actions"><button class="ghost-btn" data-clear="rx-text">清空</button></span></div>
+            <div class="pane-head"><span data-i18n="regex.textLabel">测试文本</span><span class="pane-actions"><button class="ghost-btn" data-clear="rx-text" data-i18n="btn.clear">清空</button></span></div>
             <div id="rx-highlight" class="rx-highlight code"></div>
-            <textarea id="rx-text" class="code-area fill" spellcheck="false" placeholder="输入要匹配的文本…"></textarea>
+            <textarea id="rx-text" class="code-area fill" spellcheck="false" placeholder="输入要匹配的文本…" data-i18n-placeholder="regex.textPlaceholder"></textarea>
           </div>
           <div class="pane">
-            <div class="pane-head"><span>匹配结果</span><span id="rx-count" class="muted small"></span></div>
-            <div id="rx-out" class="rx-out"><span class="muted">输入正则后显示匹配</span></div>
+            <div class="pane-head"><span data-i18n="regex.matchesLabel">匹配结果</span><span id="rx-count" class="muted small"></span></div>
+            <div id="rx-out" class="rx-out"><span class="muted" data-i18n="regex.noMatch">输入正则后显示匹配</span></div>
           </div>
         </div>
         <div class="rx-replace">
-          <div class="mini-label">替换预览</div>
+          <div class="mini-label" data-i18n="regex.replaceLabel">替换预览</div>
           <div class="rx-replace-row">
-            <input id="rx-replace" class="mini-input" placeholder="替换内容，可用 $1 引用分组" spellcheck="false" />
-            <button class="btn-secondary" id="rx-apply">应用替换</button>
+            <input id="rx-replace" class="mini-input" placeholder="替换内容，可用 $1 引用分组" data-i18n-placeholder="regex.replacePlaceholder" spellcheck="false" />
+            <button class="btn-secondary" id="rx-apply" data-i18n="regex.apply">应用替换</button>
           </div>
           <pre id="rx-replaced" class="code-area code rx-replaced" hidden></pre>
         </div>
       </div>
       <div class="tool-status">
-        <span id="rx-note" class="muted small">常用：</span>
+        <span id="rx-note" class="muted small" data-i18n="regex.presetsLabel">常用：</span>
         <span class="rx-presets" id="rx-presets"></span>
       </div>
     </section>
@@ -726,39 +740,39 @@
     <!-- ======================= CODE GEN ======================= -->
     <section class="view tool-view" id="view-codegen" data-view="codegen">
       <header class="tool-head drag-region">
-        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)">M</button>
-        <h2>cURL 转代码</h2>
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱 (Esc)" data-i18n-title="nav.backHome">M</button>
+        <h2 data-i18n="tool.codegen.title">cURL 转代码</h2>
         <div class="tool-head-actions">
           <select id="cg-lang" class="mini-select"></select>
-          <button class="btn-primary" id="cg-run">生成</button>
-          <button class="btn-secondary" id="cg-copy">复制</button>
-          <button class="btn-secondary" id="cg-save">保存文件</button>
+          <button class="btn-primary" id="cg-run" data-i18n="btn.generate">生成</button>
+          <button class="btn-secondary" id="cg-copy" data-i18n="btn.copy">复制</button>
+          <button class="btn-secondary" id="cg-save" data-i18n="codegen.saveFile">保存文件</button>
         </div>
       </header>
       <div class="tool-body two-pane" data-split="x" data-split-key="tool.codegen">
         <div class="pane">
           <div class="pane-head">
-            <span>cURL 命令</span>
+            <span data-i18n="codegen.inputLabel">cURL 命令</span>
             <span class="pane-actions">
-              <button class="ghost-btn" id="cg-from-current">用当前请求</button>
-              <button class="ghost-btn" data-clear="cg-in">清空</button>
+              <button class="ghost-btn" id="cg-from-current" data-i18n="codegen.useCurrent">用当前请求</button>
+              <button class="ghost-btn" data-clear="cg-in" data-i18n="btn.clear">清空</button>
             </span>
           </div>
           <textarea id="cg-in" class="code-area fill" spellcheck="false" placeholder="curl 'https://api.example.com/v1/items' -H 'Authorization: Bearer …'"></textarea>
         </div>
         <div class="pane">
-          <div class="pane-head"><span>生成代码</span><span id="cg-note" class="muted small"></span></div>
+          <div class="pane-head"><span data-i18n="codegen.outputLabel">生成代码</span><span id="cg-note" class="muted small"></span></div>
           <pre id="cg-out" class="code-area fill code" spellcheck="false"></pre>
         </div>
       </div>
-      <div class="tool-status"><span id="cg-status" class="muted small">粘贴 cURL，或从请求工具导入当前请求</span></div>
+      <div class="tool-status"><span id="cg-status" class="muted small" data-i18n="codegen.status">粘贴 cURL，或从请求工具导入当前请求</span></div>
     </section>
   </div>
 
   <div id="modal" class="modal hidden">
     <div class="modal-card">
       <div class="modal-head">
-        <h3 id="modalTitle">对话框</h3>
+        <h3 id="modalTitle" data-i18n="modal.title">对话框</h3>
         <button id="modalClose" class="icon-btn">✕</button>
       </div>
       <div id="modalBody" class="modal-body"></div>

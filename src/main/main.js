@@ -20,6 +20,22 @@ if (customUserData) app.setPath('userData', customUserData)
 
 let win = null
 let store = null
+let uiLanguage = 'zh'
+
+const MENU_TEXT = {
+  zh: {
+    file: '文件', newRequest: '新建请求', importCurl: '导入 cURL', saveRequest: '保存请求',
+    go: '前往', toolbox: '工具箱',
+    tools: { http: '请求工具', jwt: 'JWT 解析', regex: '正则测试', codegen: 'cURL 转代码', escape: '字符转义', base64: 'Base64 工具箱', hash: 'Hash 摘要', timestamp: '时间戳转换', json: 'JSON 格式化', markdown: 'Markdown 编辑器', generator: 'UUID / 密码' }
+  },
+  en: {
+    file: 'File', newRequest: 'New Request', importCurl: 'Import cURL', saveRequest: 'Save Request',
+    go: 'Go', toolbox: 'Toolbox',
+    tools: { http: 'API Client', jwt: 'JWT Decoder', regex: 'Regex Tester', codegen: 'cURL to Code', escape: 'Escaping', base64: 'Base64 Tools', hash: 'Hash', timestamp: 'Timestamp', json: 'JSON Formatter', markdown: 'Markdown Editor', generator: 'UUID / Password' }
+  }
+}
+
+function mt () { return MENU_TEXT[uiLanguage] || MENU_TEXT.zh }
 const sseHandles = new Map()
 
 function emitToRenderer (channel, payload) {
@@ -64,61 +80,46 @@ function createWindow () {
 }
 
 function buildMenu () {
+  const L = mt()
+  const toolItem = (id, accelIndex) => ({
+    label: L.tools[id],
+    accelerator: `CmdOrCtrl+${accelIndex}`,
+    click: () => emitToRenderer('menu:tool', id)
+  })
   const template = [
     ...(isMac ? [{ role: 'appMenu' }] : []),
     {
-      label: 'File',
+      label: L.file,
       submenu: [
-        { label: 'New Request', accelerator: 'CmdOrCtrl+N', click: () => emitToRenderer('menu:new-request') },
-        { label: 'Import cURL', accelerator: 'CmdOrCtrl+I', click: () => emitToRenderer('menu:import-curl') },
-        { label: 'Save Request', accelerator: 'CmdOrCtrl+S', click: () => emitToRenderer('menu:save-request') },
+        { label: L.newRequest, accelerator: 'CmdOrCtrl+N', click: () => emitToRenderer('menu:new-request') },
+        { label: L.importCurl, accelerator: 'CmdOrCtrl+I', click: () => emitToRenderer('menu:import-curl') },
+        { label: L.saveRequest, accelerator: 'CmdOrCtrl+S', click: () => emitToRenderer('menu:save-request') },
         { type: 'separator' },
         isMac ? { role: 'close' } : { role: 'quit' }
       ]
     },
     {
-      label: 'Go',
+      label: L.go,
       submenu: [
-        { label: '工具箱', accelerator: 'CmdOrCtrl+1', click: () => emitToRenderer('menu:home') },
+        { label: L.toolbox, accelerator: 'CmdOrCtrl+1', click: () => emitToRenderer('menu:home') },
         { type: 'separator' },
-        { label: '请求工具', accelerator: 'CmdOrCtrl+2', click: () => emitToRenderer('menu:tool', 'http') },
-        { label: 'JWT 解析', accelerator: 'CmdOrCtrl+3', click: () => emitToRenderer('menu:tool', 'jwt') },
-        { label: '正则测试', accelerator: 'CmdOrCtrl+4', click: () => emitToRenderer('menu:tool', 'regex') },
-        { label: 'cURL 转代码', accelerator: 'CmdOrCtrl+5', click: () => emitToRenderer('menu:tool', 'codegen') },
-        { label: '字符转义', accelerator: 'CmdOrCtrl+6', click: () => emitToRenderer('menu:tool', 'escape') },
-        { label: 'Base64 工具箱', accelerator: 'CmdOrCtrl+7', click: () => emitToRenderer('menu:tool', 'base64') },
-        { label: 'Hash 摘要', accelerator: 'CmdOrCtrl+8', click: () => emitToRenderer('menu:tool', 'hash') },
-        { label: '时间戳转换', accelerator: 'CmdOrCtrl+9', click: () => emitToRenderer('menu:tool', 'timestamp') }
+        toolItem('http', 2),
+        toolItem('jwt', 3),
+        toolItem('regex', 4),
+        toolItem('codegen', 5),
+        toolItem('escape', 6),
+        toolItem('base64', 7),
+        toolItem('hash', 8),
+        toolItem('timestamp', 9)
       ]
     },
     { role: 'editMenu' },
     {
-      label: 'View',
-      submenu: [
-        { role: 'reload' },
-        { role: 'toggleDevTools' },
-        { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
-        { type: 'separator' },
-        { role: 'togglefullscreen' }
-      ]
+      role: 'viewMenu'
     },
     { role: 'windowMenu' }
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
-}
-
-function mimeForPath (filePath) {
-  const ext = path.extname(filePath).toLowerCase()
-  const map = {
-    '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.gif': 'image/gif',
-    '.webp': 'image/webp', '.svg': 'image/svg+xml', '.bmp': 'image/bmp', '.ico': 'image/x-icon',
-    '.avif': 'image/avif', '.pdf': 'application/pdf', '.json': 'application/json',
-    '.txt': 'text/plain', '.md': 'text/markdown', '.html': 'text/html'
-  }
-  return map[ext] || 'application/octet-stream'
 }
 
 function registerIpc () {
@@ -263,6 +264,12 @@ function registerIpc () {
       out.push(entry)
     }
     return { ok: true, algorithms: algos, results: out }
+  })
+
+  ipcMain.handle('language:set', (_event, lang) => {
+    uiLanguage = lang === 'en' ? 'en' : 'zh'
+    buildMenu()
+    return { ok: true, language: uiLanguage }
   })
 
   ipcMain.handle('theme:set', (_event, mode) => {

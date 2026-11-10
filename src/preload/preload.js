@@ -49,6 +49,7 @@ contextBridge.exposeInMainWorld('api', {
   },
 
   setTheme: (mode) => ipcRenderer.invoke('theme:set', mode),
+  setLanguage: (lang) => ipcRenderer.invoke('language:set', lang),
 
   clipboard: {
     write: (text) => ipcRenderer.invoke('clipboard:write', text),

@@ -27,7 +27,7 @@ jobs:
     needs: test
     if: startsWith(github.ref, 'refs/tags/v')
     continue-on-error: true
-    timeout-minutes: 12
+    timeout-minutes: 10
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
@@ -48,9 +48,14 @@ jobs:
             echo "electron install failed (attempt $i); retrying in 30s"
             sleep 30
           done
+      # No screenshots on CI: capturePage is the step that stalls on headless
+      # runners, and the assertions do not need it. The watchdog turns any
+      # remaining stall into a fast failure instead of a 6-hour job.
       - run: npm run smoke -- --no-sandbox --disable-gpu
         env:
           MOZI_SMOKE_OUT: ${{ runner.temp }}/mozi-smoke.png
+          MOZI_SMOKE_NO_SHOTS: '1'
+          MOZI_SMOKE_TIMEOUT_MS: '420000'
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -90,15 +95,34 @@ jobs:
           done
       # No GH_TOKEN here: electron-builder would publish its own copy of every
       # artifact and duplicate what the release job uploads below.
-      # Retry the whole packaging step: it downloads Electron/NSIS assets from
-      # GitHub, which intermittently 504s.
+      #
+      # Signing/notarization is credential-driven: with repository secrets set
+      # (CSC_LINK + CSC_KEY_PASSWORD for the Developer ID cert, APPLE_ID +
+      # APPLE_APP_SPECIFIC_PASSWORD + APPLE_TEAM_ID for notarytool, WIN_CSC_* for
+      # Windows) the build is signed and notarized; without them it stays
+      # unsigned and CI still produces artifacts. Retries cover the
+      # intermittent 504s from GitHub's release-asset endpoint.
       - name: Package (${{ matrix.script }})
         shell: bash
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.CSC_LINK != '' && 'true' || 'false' }}
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
         run: |
+          EXTRA=""
+          if [ -n "${APPLE_ID}" ] && [ -n "${APPLE_APP_SPECIFIC_PASSWORD}" ] && [ -n "${APPLE_TEAM_ID}" ]; then
+            EXTRA="-c.mac.notarize=true"
+            echo "notarization enabled"
+          else
+            echo "no Apple credentials: building unsigned"
+          fi
           for i in 1 2 3; do
-            npm run ${{ matrix.script }} && break
+            npm run ${{ matrix.script }} -- $EXTRA && break
             [ "$i" = 3 ] && exit 1
             echo "packaging failed (attempt $i); retrying in 30s"
             sleep 30

@@ -6,6 +6,8 @@
  */
 ;(function () {
   const api = window.api
+  // translation helper: dictionary lookup, falling back to the Chinese source
+  const tr = (key, fallback) => (window.I18N && window.I18N.t) ? window.I18N.t(key, fallback) : fallback
   const C = window.Codec
   const $ = (sel, root) => (root || document).querySelector(sel)
 
@@ -102,7 +104,7 @@
       const tmp = input.value
       input.value = output.value
       output.value = tmp
-      note.textContent = '已交换输入与输出'
+      note.textContent = tr('msg.swappedIO', '已交换输入与输出')
     })
   }
 
@@ -135,7 +137,7 @@
       const text = input.value.trim()
       if (!text) {
         output.value = ''
-        status.textContent = '等待输入…'
+        status.textContent = tr('msg.waitingInput', '等待输入…')
         status.style.color = ''
         setStats(stats, '')
         return
@@ -184,9 +186,9 @@
     })
     $('#json-validate').addEventListener('click', () => {
       const parsed = C.parseJson(input.value)
-      if (!parsed.ok) { fail(parsed); toast('JSON 不合法'); return }
+      if (!parsed.ok) { fail(parsed); toast(tr('json.invalid', 'JSON 不合法')); return }
       ok(input.value, describe(parsed.value))
-      toast('JSON 合法')
+      toast(tr('json.valid', 'JSON 合法'))
     })
     $('#json-swap').addEventListener('click', () => {
       if (!output.value) return
@@ -227,16 +229,16 @@
       if (!text) {
         output.value = ''
         setStats(stats, '')
-        note.textContent = '等待输入…'
+        note.textContent = tr('msg.waitingInput', '等待输入…')
         return
       }
       try {
         if (mode.value === 'encode') {
           output.value = C.base64Encode(text, urlSafe.checked)
-          note.textContent = '已编码' + (urlSafe.checked ? '（URL-safe）' : '')
+          note.textContent = tr('msg.encoded', '已编码') + (urlSafe.checked ? '（URL-safe）' : '')
         } else {
           output.value = C.base64Decode(text, urlSafe.checked)
-          note.textContent = '已解码'
+          note.textContent = tr('msg.decoded', '已解码')
         }
         note.style.color = ''
         setStats(stats, `输入 ${text.length} 字符 · 输出 ${output.value.length} 字符`)
@@ -260,7 +262,7 @@
       labels()
       output.value = tmp
       run()
-      toast('已交换')
+      toast(tr('msg.swapped', '已交换'))
     })
     labels()
 
@@ -294,11 +296,11 @@
     })
 
     $('#img2-copy-base64').addEventListener('click', () => {
-      if (!picked) return toast('还没有选择图片')
+      if (!picked) return toast(tr('img.noneSelected', '还没有选择图片'))
       copy(picked.base64, 'Base64')
     })
     $('#img2-copy-dataurl').addEventListener('click', () => {
-      if (!picked) return toast('还没有选择图片')
+      if (!picked) return toast(tr('img.noneSelected', '还没有选择图片'))
       copy(picked.dataUrl, 'Data URL')
     })
 
@@ -313,13 +315,13 @@
       if (!text) {
         preview.textContent = ''
         preview.appendChild(Object.assign(document.createElement('span'), { className: 'muted', textContent: '还没有可预览的图片' }))
-        imgNote.textContent = '粘贴 Base64 或 Data URL，自动预览'
+        imgNote.textContent = tr('img.inputHint2', '粘贴 Base64 或 Data URL，自动预览')
         imgNote.style.color = ''
         return
       }
       const parsed = C.normalizeDataUrl(text)
       if (!parsed) {
-        imgNote.textContent = '无法识别为 Base64 或 Data URL'
+        imgNote.textContent = tr('img.unrecognized', '无法识别为 Base64 或 Data URL')
         imgNote.style.color = 'var(--red)'
         return
       }
@@ -336,7 +338,7 @@
       img.addEventListener('error', () => {
         preview.textContent = ''
         preview.appendChild(Object.assign(document.createElement('span'), { className: 'muted', textContent: '无法解析为图片' }))
-        imgNote.textContent = 'Base64 内容不是有效的图片'
+        imgNote.textContent = tr('img.notAnImage', 'Base64 内容不是有效的图片')
         imgNote.style.color = 'var(--red)'
       })
     }
@@ -344,7 +346,7 @@
     inArea.addEventListener('input', debounce(renderFromBase64, 250))
     $('#img-render').addEventListener('click', renderFromBase64)
     $('#img-save').addEventListener('click', async () => {
-      if (!current) return toast('没有可保存的图片')
+      if (!current) return toast(tr('img.nothingToSave', '没有可保存的图片'))
       const ext = (current.mime.split('/')[1] || 'png').replace('svg+xml', 'svg').replace('jpeg', 'jpg')
       const result = await api.files.saveBase64({ defaultName: `mozi-image.${ext}`, base64: current.base64, mime: current.mime })
       if (result.ok) toast(`已保存到 ${result.path}`)
@@ -500,12 +502,94 @@ flowchart LR
 
     async function insertImageFile (file) {
       if (!file) return
-      if (!/^image\//.test(file.type)) { toast('请选择图片文件'); return }
+      if (!/^image\//.test(file.type)) { toast(tr('img.pickPrompt', '请选择图片文件')); return }
       const dataUrl = await fileToDataUrl(file)
       const name = (file.name || 'image').replace(/[\r\n]/g, '')
       insertAtCursor(`\n![${name}](${dataUrl})\n`)
-      toast('图片已插入')
+      toast(tr('img.inserted', '图片已插入'))
     }
+
+    // ---- relative image paths -------------------------------------------------
+    // Markdown written next to its assets uses `./img/x.png`; the renderer runs
+    // in a file:// document, so those URLs must be rewritten against the folder
+    // of the .md file the user opened.
+    const MD_BASE_KEY = 'mozi.mdBaseDir'
+    let mdBaseDir = (() => { try { return localStorage.getItem(MD_BASE_KEY) || '' } catch { return '' } })()
+    let mdFullscreen = false
+
+    function dirName (filePath) {
+      const normalised = String(filePath || '').replace(/\\/g, '/')
+      const cut = normalised.lastIndexOf('/')
+      return cut > 0 ? normalised.slice(0, cut) : ''
+    }
+
+    function joinPath (dir, rel) {
+      const parts = String(dir).replace(/\\/g, '/').split('/')
+      for (const piece of String(rel).replace(/\\/g, '/').split('/')) {
+        if (!piece || piece === '.') continue
+        if (piece === '..') { if (parts.length > 1) parts.pop(); continue }
+        parts.push(piece)
+      }
+      const joined = parts.join('/')
+      return joined.startsWith('/') ? joined : '/' + joined
+    }
+
+    function fileUrl (absPath) {
+      return 'file://' + String(absPath).split('/').map(encodeURIComponent).join('/')
+    }
+
+    function isRelativeSrc (src) {
+      const value = String(src == null ? '' : src).trim()
+      if (!value) return false
+      if (value.startsWith('//')) return false
+      return !/^[a-z][a-z0-9+.-]*:/i.test(value)
+    }
+
+    function resolveRelativeImages (root) {
+      for (const img of root.querySelectorAll('img[src]')) {
+        const original = img.getAttribute('src')
+        if (!isRelativeSrc(original)) continue
+        if (!mdBaseDir) {
+          img.classList.add('img-unresolved')
+          img.title = tr('md.needBaseDir', '相对路径需要先打开本地 .md 文件')
+          continue
+        }
+        const abs = original.startsWith('/') ? original : joinPath(mdBaseDir, original)
+        img.dataset.resolvedFrom = original
+        img.setAttribute('src', fileUrl(abs))
+      }
+    }
+
+    function setBaseDir (dir, opts) {
+      mdBaseDir = String(dir || '')
+      try {
+        if (mdBaseDir) localStorage.setItem(MD_BASE_KEY, mdBaseDir)
+        else localStorage.removeItem(MD_BASE_KEY)
+      } catch { /* private mode */ }
+      const label = document.querySelector('#md-base')
+      if (label) {
+        label.textContent = mdBaseDir || ''
+        label.title = mdBaseDir ? tr('md.baseDirHint', '图片相对路径按此目录解析') + '：' + mdBaseDir : ''
+      }
+      if (!opts || opts.rerender !== false) render()
+    }
+
+    function setFullscreen (on) {
+      mdFullscreen = !!on
+      const view = document.querySelector('#view-markdown')
+      if (view) view.classList.toggle('is-md-fullscreen', mdFullscreen)
+      render()
+    }
+
+    // app.js asks this before treating Esc as "go back to the toolbox"
+    window.__moziHandleEscape = () => {
+      if (!mdFullscreen) return false
+      setFullscreen(false)
+      return true
+    }
+    // test seam: point the resolver at a folder without going through a dialog
+    window.__moziSetMdBaseDir = (dir) => setBaseDir(dir)
+    window.__moziMdState = () => ({ baseDir: mdBaseDir, fullscreen: mdFullscreen })
 
     function render () {
       const myToken = ++token
@@ -517,12 +601,18 @@ flowchart LR
       } catch (err) {
         preview.textContent = `渲染失败：${err.message}`
       }
+      resolveRelativeImages(preview)
       renderMermaid(preview, myToken).catch(() => {})
+      const fullBtn = document.querySelector('#md-full')
+      if (fullBtn) fullBtn.textContent = mdFullscreen ? tr('md.exitFullscreen', '退出全屏') : tr('md.fullscreen', '全屏预览')
       const chars = text.length
       const words = (text.match(/[\u4e00-\u9fa5]|[A-Za-z0-9_\u00c0-\u024f]+/g) || []).length
       stats.textContent = `${chars} 字符 · ${words} 词`
     }
 
+    if (mdBaseDir) setBaseDir(mdBaseDir, { rerender: false })
+    $('#md-full').addEventListener('click', () => setFullscreen(!mdFullscreen))
+    $('#md-exit-full').addEventListener('click', () => setFullscreen(false))
     input.addEventListener('input', debounce(render, 100))
     $('#md-image').addEventListener('click', async () => {
       const files = await api.files.pick()
@@ -530,7 +620,7 @@ flowchart LR
       const result = await api.files.readBase64(files[0].path)
       if (!result.ok) { toast(result.error || '读取失败'); return }
       insertAtCursor(`\n![${files[0].name}](data:${result.mime};base64,${result.base64})\n`)
-      toast('图片已插入')
+      toast(tr('img.inserted', '图片已插入'))
     })
 
     input.addEventListener('paste', async (e) => {
@@ -554,12 +644,13 @@ flowchart LR
       const result = await api.dialog.openText({ filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'txt'] }] })
       if (!result.ok) return
       input.value = result.content
+      setBaseDir(dirName(result.path), { rerender: false })
       render()
       const name = String(result.path).split(/[\\/]/).pop()
       toast(`已打开 ${name}`)
     })
 
-    $('#md-sample').addEventListener('click', () => { input.value = SAMPLE_MD; render(); toast('已插入示例') })
+    $('#md-sample').addEventListener('click', () => { input.value = SAMPLE_MD; render(); toast(tr('msg.sampleInserted', '已插入示例')) })
     $('#md-clear').addEventListener('click', () => { input.value = ''; render() })
     $('#md-copy-html').addEventListener('click', () => {
       copy(preview.innerHTML, 'HTML')

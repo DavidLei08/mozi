@@ -732,3 +732,34 @@ body.is-dragging .split-handle { pointer-events: auto; }
 .table-head { grid-template-columns: 26px minmax(110px, .9fr) minmax(140px, 1.2fr) minmax(150px, .9fr) 26px; }
 .cookie-meta { font-family: var(--mono); font-size: 11px; color: var(--text-mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #cookieHint { margin: 10px 0 0; }
+
+/* ---------------- markdown fullscreen preview ---------------- */
+.md-base { max-width: 42ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.md-base:empty { display: none; }
+
+/* the preview takes over the whole window; the editor and chrome step aside */
+#view-markdown.is-md-fullscreen .tool-head,
+#view-markdown.is-md-fullscreen .md-body > .pane:first-child,
+#view-markdown.is-md-fullscreen .md-body > .splitter { display: none; }
+#view-markdown.is-md-fullscreen .md-body { padding: 0; }
+#view-markdown.is-md-fullscreen .md-body > .pane:last-child {
+  position: fixed; inset: 0; z-index: 60; border-radius: 0; border: 0;
+}
+#view-markdown.is-md-fullscreen .md-preview { padding: 32px 48px 64px; }
+/* keep the head clear of the floating exit button */
+#view-markdown.is-md-fullscreen .md-body > .pane:last-child > .pane-head { padding-right: 150px; }
+.md-fullscreen-exit {
+  position: fixed; top: 14px; right: 16px; z-index: 61;
+  display: none; align-items: center; gap: 8px;
+  padding: 7px 12px; border-radius: 999px; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line); color: var(--text);
+  box-shadow: var(--shadow-md, 0 6px 20px rgba(0,0,0,.18)); font: inherit; font-size: 12px;
+}
+#view-markdown.is-md-fullscreen .md-fullscreen-exit { display: inline-flex; }
+.md-fullscreen-exit:hover { background: var(--panel-2, var(--panel)); }
+
+/* a relative image with no folder to resolve against */
+.md-preview img.img-unresolved {
+  outline: 1px dashed var(--line-strong, var(--line));
+  outline-offset: 2px; min-width: 24px; min-height: 24px;
+}

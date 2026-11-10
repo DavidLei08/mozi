@@ -56,10 +56,25 @@
 - 点 **「保存」**（或 `⌘S`）才会把请求写入集合并命名——编辑过程中不会自动改集合
 - 当前所有标签页、集合、历史、Cookie、环境等**工作状态**始终自动持久化到本地文件，重启后原样恢复
 
-## 主题
+## Markdown 编辑器
 
-首页右上角切换 **浅色 / 跟随系统 / 深色**（默认跟随系统），选择会持久化，
-窗口底色、Mermaid 流程图配色同步切换。
+- **全屏预览**：工具栏「全屏预览」按钮让预览铺满整个窗口，编辑器与工具栏自动隐藏；
+  右上角浮动按钮或 `Esc` 退出（`Esc` 在全屏时只退出全屏，不会跳回工具箱）
+- **相对路径图片**：打开本地 `.md` 文件后，`![](./img/sss.png)`、`![](../assets/a.jpg)`
+  会按 **该 md 文件所在目录** 解析成绝对 `file://` 地址，图片直接回显；
+  解析目录显示在预览栏标题旁，并记住上次打开的目录
+- 若粘贴的 Markdown 含相对路径但还没打开过文件，图片会以虚线框标出并提示需要先打开本地文件
+- 图片也可直接「插入图片」或粘贴剪贴板图片，会内联为 data URL
+
+## 主题与语言
+
+首页右上角切换：
+
+- **主题**：浅色 / 跟随系统 / 深色（默认跟随系统），窗口底色与 Mermaid 流程图配色同步
+- **语言**：中文 / English，界面文案与 macOS/Windows 原生菜单同步切换，选择持久化
+
+> 当前英文覆盖界面主体（首页、工具名与描述、面板与按钮、原生菜单）；少数动态提示
+> （toast、错误详情）仍为中文，词典缺项时自动回退中文而不会显示 key。
 
 ## 打开本地 Markdown
 
@@ -109,12 +124,16 @@ npm test       # 单元测试：HTTP / WS / SSE / cURL / codec / jwt / codegen /
 npm run smoke  # 端到端：起本地服务，走完 6 个工具的 50 项断言并截图
 ```
 
-`npm run smoke` 覆盖 **142 项断言**：首页分组与 11 个工具卡片、HTTP 请求与 JSON 树、WS 收发、
+`npm run smoke` 覆盖 **146 项断言**：首页分组与 11 个工具卡片、HTTP 请求与 JSON 树、WS 收发、
 SSE 流（GET 与 POST body）、集合保存落盘、cURL 导入导出、转义 / JSON / Base64（文本 + 图片三标签）/
 Markdown（含 Mermaid 与图片）、时间戳、Hash（含已知向量校验）、UUID/密码、正则、JWT、代码生成，
 以及返回工具箱（所有工具统一为 M 图标）、首页搜索、最近使用、⌘1…⌘9 直达、
 分栏拖拽 / 双击重置 / 重启后恢复、主题切换、Markdown 打开本地文件、
-Cookie 自动收集与回发（grant → jar → whoami 往返）。
+Cookie 自动收集与回发（grant → jar → whoami 往返）、主题切换与 Mermaid 重绘。
+
+CI 上跑 smoke 时会带 `MOZI_SMOKE_NO_SHOTS=1`（跳过截图，`capturePage` 在无头 runner 上
+容易卡住）并启用看门狗：单步 25s、整体 7 分钟，超时会打印诊断并快速失败，
+而不是拖满 job 超时。
 
 ```bash
 npm run smoke -- --no-sandbox --disable-gpu   # 沙箱 / CI 环境
@@ -125,6 +144,28 @@ npm run smoke -- --no-sandbox --disable-gpu   # 沙箱 / CI 环境
 ```bash
 npm run dist:mac   # macOS dmg + zip
 npm run dist:win   # Windows NSIS + 便携版
+```
+
+只保留 `en` 与 `zh_CN` 语言包（`electronLanguages`），Electron 自带的其余 60 多个
+locale 会被裁掉，安装体积减少约 9 MB。
+
+### 签名与公证
+
+签名是**凭据驱动**的：仓库 Secrets 配好就自动签名 + 公证，没配就照常产出未签名包，
+CI 不需要改。
+
+| Secret | 用途 |
+|---|---|
+| `CSC_LINK` | macOS Developer ID 证书（base64 的 .p12） |
+| `CSC_KEY_PASSWORD` | 上面对应的密码 |
+| `APPLE_ID` / `APPLE_APP_SPECIFIC_PASSWORD` / `APPLE_TEAM_ID` | 公证（notarytool），三者齐备才启用 |
+| `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD` | Windows 代码签名证书 |
+
+配置了证书后，macOS 首次打开不再需要 `xattr -dr com.apple.quarantine`，
+Windows 也不会再弹 SmartScreen 警告。未签名时的替代命令：
+
+```bash
+xattr -dr com.apple.quarantine /Applications/Mozi.app
 ```
 
 产物在 `release/`：

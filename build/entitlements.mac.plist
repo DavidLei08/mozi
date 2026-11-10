@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!-- Electron needs a JIT and writable executable memory; without these the
+       hardened runtime kills the renderer on launch. -->
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+  <!-- Loads the frameworks we ship inside the bundle (Electron, Squirrel). -->
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+  <!-- Outbound HTTP from the API tool; the app is a client only. -->
+  <key>com.apple.security.network.client</key>
+  <true/>
+  <!-- Reading a file the user picked in a dialog (markdown, uploads, images). -->
+  <key>com.apple.security.files.user-selected.read-write</key>
+  <true/>
+</dict>
+</plist>

@@ -6,6 +6,8 @@
  */
 ;(function () {
   const api = window.api
+  // translation helper: dictionary lookup, falling back to the Chinese source
+  const tr = (key, fallback) => (window.I18N && window.I18N.t) ? window.I18N.t(key, fallback) : fallback
   const C = window.Codec
   const $ = (sel, root) => (root || document).querySelector(sel)
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel))
@@ -101,7 +103,7 @@
       }
       const date = new Date(ms)
       if (Number.isNaN(date.getTime())) {
-        local.textContent = '无效时间'
+        local.textContent = tr('ts.invalid', '无效时间')
         utc.textContent = iso.textContent = rel.textContent = ''
         return
       }
@@ -202,7 +204,7 @@
 
     async function run () {
       const text = input.value
-      if (!text) { out.textContent = ''; note.textContent = '本地计算，不发送任何数据'; return }
+      if (!text) { out.textContent = ''; note.textContent = tr('ts.localNote', '本地计算，不发送任何数据'); return }
       // MD5 is not available in Web Crypto, so hashing goes through the main process.
       const result = await api.hash.text({ algorithms: ALGOS, text, encoding: enc.value })
       out.textContent = ''
@@ -224,7 +226,7 @@
         const value = node.querySelector('.value span').textContent
         return `${algo}  ${value}`
       })
-      if (!lines.length) return toast('还没有结果')
+      if (!lines.length) return toast(tr('gen.empty', '还没有结果'))
       copy(lines.join('\n'), '全部摘要')
     })
 
@@ -311,7 +313,7 @@
     }
     $('#uuid-gen').addEventListener('click', genUuid)
     $('#uuid-copy').addEventListener('click', () => {
-      if (!uuidOut.value) return toast('先生成')
+      if (!uuidOut.value) return toast(tr('gen.generateFirst', '先生成'))
       copy(uuidOut.value, 'UUID')
     })
     genUuid()
@@ -341,7 +343,7 @@
       if ($('#pw-lower').checked) pools.push(table.lower)
       if ($('#pw-digit').checked) pools.push(table.digit)
       if ($('#pw-symbol').checked) pools.push(table.symbol)
-      if (!pools.length) { toast('至少选择一种字符'); return }
+      if (!pools.length) { toast(tr('gen.pickCharset', '至少选择一种字符')); return }
 
       const all = pools.join('')
       const lines = []
@@ -388,7 +390,7 @@
 
     $('#pw-gen').addEventListener('click', genPassword)
     $('#pw-copy').addEventListener('click', () => {
-      if (!pwOut.value) return toast('先生成')
+      if (!pwOut.value) return toast(tr('gen.generateFirst', '先生成'))
       copy(pwOut.value, '密码')
     })
     genPassword()
@@ -453,8 +455,8 @@
         note.style.color = 'var(--red)'
         return
       }
-      if (built.empty) { note.textContent = '输入正则后显示匹配'; return }
-      note.textContent = '常用：'
+      if (built.empty) { note.textContent = tr('re.empty', '输入正则后显示匹配'); return }
+      note.textContent = tr('re.common', '常用：')
 
       const re = built.re
       const source = text.value
@@ -555,12 +557,12 @@
         headerBox.textContent = ''
         payloadBox.textContent = ''
         algLabel.textContent = ''
-        note.textContent = '粘贴 token 自动解析；数据只在本机处理'
+        note.textContent = tr('jwt.note2', '粘贴 token 自动解析；数据只在本机处理')
         note.style.color = ''
         return
       }
       if (!window.Jwt || typeof window.Jwt.decode !== 'function') {
-        note.textContent = 'JWT 解析模块未加载'
+        note.textContent = tr('jwt.moduleMissing', 'JWT 解析模块未加载')
         note.style.color = 'var(--red)'
         return
       }
@@ -589,9 +591,9 @@
       const secret = $('#jwt-secret').value
       const token = input.value.trim()
       const out = $('#jwt-verify-out')
-      if (!token || !secret) { out.textContent = '需要 token 和密钥'; return }
-      if (!window.Jwt || typeof window.Jwt.verifyHs256 !== 'function') { out.textContent = '验签模块未加载'; return }
-      out.textContent = '验证中…'
+      if (!token || !secret) { out.textContent = tr('jwt.needTokenKey', '需要 token 和密钥'); return }
+      if (!window.Jwt || typeof window.Jwt.verifyHs256 !== 'function') { out.textContent = tr('jwt.verifyMissing', '验签模块未加载'); return }
+      out.textContent = tr('jwt.verifying', '验证中…')
       const result = await window.Jwt.verifyHs256(token, secret)
       if (!result.ok) { out.textContent = result.error || '验证失败'; out.style.color = 'var(--red)'; return }
       out.style.color = result.valid ? 'var(--green)' : 'var(--red)'
@@ -614,7 +616,7 @@
       langSelect.appendChild(opt)
     }
     if (!languages.length) {
-      status.textContent = '代码生成模块未加载'
+      status.textContent = tr('cg.moduleMissing', '代码生成模块未加载')
       status.style.color = 'var(--red)'
     }
 
@@ -643,11 +645,11 @@
     input.addEventListener('input', debounce(run, 200))
     $('#cg-run').addEventListener('click', run)
     $('#cg-copy').addEventListener('click', () => {
-      if (!out.textContent) return toast('还没有代码')
+      if (!out.textContent) return toast(tr('cg.empty', '还没有代码'))
       copy(out.textContent, '代码')
     })
     $('#cg-save').addEventListener('click', async () => {
-      if (!out.textContent) return toast('还没有代码')
+      if (!out.textContent) return toast(tr('cg.empty', '还没有代码'))
       const ext = { python: 'py', javascript: 'js', 'node-axios': 'js', go: 'go', java: 'java', curl: 'sh' }[langSelect.value] || 'txt'
       const result = await api.dialog.saveText({ defaultName: `mozi-request.${ext}`, content: out.textContent })
       if (result.ok) toast(`已保存到 ${result.path}`)
@@ -656,7 +658,7 @@
     // import the current request from the HTTP tool
     $('#cg-from-current').addEventListener('click', () => {
       const request = typeof window.__moziCurrentRequest === 'function' ? window.__moziCurrentRequest() : null
-      if (!request) { toast('请求工具里还没有请求'); return }
+      if (!request) { toast(tr('cg.noRequest', '请求工具里还没有请求')); return }
       input.value = request
       run()
     })

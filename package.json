@@ -1,7 +1,7 @@
 {
   "name": "mozi",
   "productName": "Mozi",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "description": "Mozi — a local toolbox for API testing, encoding, JSON, images and Markdown",
   "main": "src/main/main.js",
   "author": "Mozi contributors",
@@ -52,7 +52,11 @@
         }
       ],
       "darkModeSupport": true,
-      "identity": null
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false,
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": false
     },
     "win": {
       "target": [
@@ -85,7 +89,11 @@
     "publish": null,
     "portable": {
       "artifactName": "${productName}-${version}.${ext}"
-    }
+    },
+    "electronLanguages": [
+      "en",
+      "zh_CN"
+    ]
   },
   "homepage": "https://github.com/DavidLei08/mozi#readme",
   "repository": {

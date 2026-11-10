@@ -12,9 +12,9 @@
     collections: [],
     cookies: [],
     history: [],
-    environments: [{ id: uid(), name: 'Default', vars: [] }],
+    environments: [{ id: uid(), name: 'Default', builtin: 'default', vars: [] }],
     activeEnvId: null,
-    settings: { historyLimit: 300, timeoutMs: 120000, theme: 'system' },
+    settings: { historyLimit: 300, timeoutMs: 120000, theme: 'system', language: 'zh' },
     tabs: [],
     activeTabId: null,
     ui: { view: 'home', toolQuery: '', recent: [], side: 'collections', reqTab: 'params', respTab: 'pretty', search: '', split: 52, collapsed: [] }
@@ -257,7 +257,7 @@
       hist.classList.add('hidden')
       tree.textContent = ''
       if (!state.collections.length) {
-        tree.appendChild(el('p', 'muted small', 'No collections yet. Save a request to start one.'))
+        tree.appendChild(el('p', 'muted small', tr('side.emptyCollections', '还没有集合，保存一个请求就会创建')))
         return
       }
       for (const coll of state.collections) tree.appendChild(renderCollectionNode(coll, 0, q))
@@ -266,7 +266,7 @@
       hist.classList.remove('hidden')
       hist.textContent = ''
       const items = state.history.filter((h) => !q || `${h.method} ${h.url}`.toLowerCase().includes(q))
-      if (!items.length) hist.appendChild(el('p', 'muted small', q ? 'No history matches.' : 'No requests sent yet.'))
+      if (!items.length) hist.appendChild(el('p', 'muted small', q ? tr('side.emptySearch', '没有匹配的记录') : tr('side.emptyHistory', '还没有发送过请求')))
       for (const h of items.slice(0, 200)) hist.appendChild(renderHistoryRow(h))
     }
   }
@@ -288,7 +288,7 @@
       row.appendChild(icon)
     }
 
-    const name = el('span', 'node-name', node.name || 'Untitled')
+    const name = el('span', 'node-name', node.name || tr('tab.untitled', '未命名'))
     row.appendChild(name)
 
     const actions = el('span', 'node-actions')
@@ -326,7 +326,7 @@
       if (!filtered.length) {
         const empty = el('div', 'muted small')
         empty.style.paddingLeft = `${8 + (depth + 1) * 12}px`
-        empty.textContent = 'empty'
+        empty.textContent = tr('side.emptyFolder', '空')
         wrap.appendChild(empty)
       }
       for (const kid of filtered) wrap.appendChild(renderCollectionNode(kid, depth + 1, q))
@@ -370,7 +370,8 @@
     const sel = $('#envSelect')
     sel.textContent = ''
     for (const env of state.environments) {
-      const opt = el('option', null, env.name)
+      const label = env.builtin === 'default' ? tr('env.defaultName', env.name) : env.name
+      const opt = el('option', null, label)
       opt.value = env.id
       sel.appendChild(opt)
     }
@@ -456,7 +457,7 @@
       const btn = el('div', `tab${tab.id === state.activeTabId ? ' is-active' : ''}`)
       const tag = el('span', `method-tag ${methodClass(tab.request.method, tab.request.kind)}`, tab.request.kind === 'ws' ? 'WS' : tab.request.kind === 'sse' ? 'SSE' : tab.request.method)
       btn.appendChild(tag)
-      btn.appendChild(el('span', 'tab-name', `${tab.request.name || 'Untitled'}${tab.dirty ? ' •' : ''}`))
+      btn.appendChild(el('span', 'tab-name', `${tab.request.name || tr('tab.untitled', '未命名')}${tab.dirty ? ' •' : ''}`))
       const close = el('button', 'tab-close', '✕')
       close.title = 'Close tab'
       close.addEventListener('click', (e) => { e.stopPropagation(); closeTab(tab.id) })
@@ -553,7 +554,7 @@
       const key = document.createElement('input')
       key.type = 'text'
       key.value = item.key ?? ''
-      key.placeholder = 'key'
+      key.placeholder = tr('kv.placeholderKey', '名称')
       key.spellcheck = false
       key.addEventListener('input', () => { item.key = key.value; opts.onChange() })
       row.appendChild(key)
@@ -577,7 +578,7 @@
         const value = document.createElement('input')
         value.type = 'text'
         value.value = item.value ?? ''
-        value.placeholder = 'value'
+        value.placeholder = tr('kv.placeholderValue', '值')
         value.spellcheck = false
         value.addEventListener('input', () => { item.value = value.value; opts.onChange() })
         valueCell.appendChild(value)
@@ -694,7 +695,7 @@
       row.appendChild(del)
       box.appendChild(row)
     })
-    if (!state.cookies.length) box.appendChild(el('p', 'muted small', '还没有 Cookie。发送请求后自动收集，或手动添加。'))
+    if (!state.cookies.length) box.appendChild(el('p', 'muted small', tr('cookie.empty', '还没有 Cookie。发送请求后自动收集，或手动添加。')))
     updateBadges()
   }
 
@@ -717,12 +718,12 @@
     if (!tab) return
     const btn = $('#btn-send')
     if (tab.request.kind === 'http') {
-      btn.textContent = 'Send'
+      btn.textContent = tr('btn.send', '发送')
       btn.classList.remove('stream-btn')
       btn.disabled = false
     } else {
       const connected = tab.stream && tab.stream.connected
-      btn.textContent = connected ? 'Disconnect' : 'Connect'
+      btn.textContent = connected ? tr('btn.disconnect', '断开') : tr('btn.connect', '连接')
       btn.classList.add('stream-btn')
       btn.disabled = false
     }
@@ -813,11 +814,11 @@
     const tab = activeTab()
     if (!tab) return
     if (tab.request.kind !== 'http') return toggleStream(tab)
-    if (!String(tab.request.url || '').trim()) { toast('Enter a URL first'); $('#urlInput').focus(); return }
+    if (!String(tab.request.url || '').trim()) { toast(tr('msg.enterUrl', '请输入 URL')); $('#urlInput').focus(); return }
 
     const btn = $('#btn-send')
     btn.disabled = true
-    btn.textContent = 'Sending…'
+    btn.textContent = tr('msg.sending', '发送中…')
     const started = Date.now()
     try {
       const payload = buildPayload(tab.request)
@@ -884,14 +885,14 @@
     const sizeEl = $('#respSize')
 
     if (res.error) {
-      statusEl.textContent = 'ERROR'
+      statusEl.textContent = tr('resp.errorLabel', '错误')
       statusEl.classList.add('err')
       timeEl.classList.add('hidden')
       sizeEl.classList.add('hidden')
       $('#respNote').textContent = res.error
       $('#respPretty').textContent = ''
       const wrap = el('div', 'error-block')
-      wrap.appendChild(el('div', 'error-title', 'Request failed'))
+      wrap.appendChild(el('div', 'error-title', tr('resp.errorTitle', '请求失败')))
       wrap.appendChild(el('div', 'error-msg', res.error))
       $('#respPretty').appendChild(wrap)
       $('#respRaw').textContent = ''
@@ -968,7 +969,7 @@
       row.appendChild(el('span', 'h-val', v))
       table.appendChild(row)
     }
-    if (!(res.headers || []).length) table.appendChild(el('p', 'muted', 'No response headers.'))
+    if (!(res.headers || []).length) table.appendChild(el('p', 'muted', tr('resp.noHeaders', '没有响应头。')))
     box.appendChild(table)
   }
 
@@ -1029,7 +1030,7 @@
   function toggleStream (tab) {
     if (tab.stream.connected) { stopStream(tab); return }
     const url = streamUrl(tab.request)
-    if (!url) { toast('Enter a URL first'); return }
+    if (!url) { toast(tr('msg.enterUrl', '请输入 URL')); return }
     const headers = {}
     for (const [k, v] of effectiveHeaders(tab.request)) headers[k] = v
 
@@ -1051,7 +1052,7 @@
     } else {
       const body = tab.request.method === 'GET' || tab.request.method === 'HEAD' ? null : sseBody(tab.request)
       if (body === null && (tab.request.body || {}).type === 'form-data') {
-        toast('SSE 暂不支持 multipart 请求体')
+        toast(tr('sse.noMultipart', 'SSE 暂不支持 multipart 请求体'))
       }
       api.sse.open({
         id: tab.stream.streamId,
@@ -1150,7 +1151,7 @@
     renderStreamLog()
     $('#streamInput').disabled = tab.request.kind === 'sse'
     $('#btn-stream-send').disabled = tab.request.kind === 'sse'
-    $('#streamInput').placeholder = tab.request.kind === 'sse' ? 'SSE is receive-only' : 'Message to send (WS)…'
+    $('#streamInput').placeholder = tab.request.kind === 'sse' ? tr('stream.receiveOnly', 'SSE 仅接收') : tr('stream.messagePlaceholder', '要发送的消息…')
   }
 
   function renderStreamLog () {
@@ -1192,14 +1193,14 @@
     if (!tab) return
     const existing = tab.savedNodeId ? findNode(tab.savedNodeId, state.collections) : null
     const body = el('div', 'form-grid')
-    body.appendChild(el('div', 'mini-label', 'Request name'))
+    body.appendChild(el('div', 'mini-label', tr('save.requestName', '请求名称')))
     const name = document.createElement('input')
     name.className = 'mini-input'
     name.value = (existing && existing.name) || tab.request.name || 'Untitled'
     body.appendChild(name)
 
     if (!existing) {
-      body.appendChild(el('div', 'mini-label', 'Collection'))
+      body.appendChild(el('div', 'mini-label', tr('save.collection', '集合')))
       const select = document.createElement('select')
       select.className = 'mini-input'
       for (const c of state.collections) {
@@ -1207,13 +1208,13 @@
         opt.value = c.id
         select.appendChild(opt)
       }
-      const newOpt = el('option', null, '+ New collection…')
+      const newOpt = el('option', null, tr('save.newCollection', '+ 新建集合…'))
       newOpt.value = '__new__'
       select.appendChild(newOpt)
       body.appendChild(select)
       const newName = document.createElement('input')
       newName.className = 'mini-input hidden'
-      newName.placeholder = 'New collection name'
+      newName.placeholder = tr('save.newCollectionName', '新集合名称')
       body.appendChild(newName)
       select.addEventListener('change', () => newName.classList.toggle('hidden', select.value !== '__new__'))
 
@@ -1221,9 +1222,9 @@
         title: existing ? 'Rename saved request' : 'Save request',
         body,
         actions: [
-          { label: 'Cancel', kind: 'secondary' },
+          { label: tr('btn.cancel', 'Cancel'), kind: 'secondary' },
           {
-            label: 'Save',
+            label: tr('btn.save', '保存'),
             kind: 'primary',
             onClick: () => {
               const finalName = name.value.trim() || 'Untitled'
@@ -1234,11 +1235,11 @@
               } else {
                 let target = state.collections.find((c) => c.id === select.value)
                 if (select.value === '__new__') {
-                  target = { id: uid(), type: 'collection', name: newName.value.trim() || 'New collection', items: [] }
+                  target = { id: uid(), type: 'collection', name: newName.value.trim() || tr('coll.new', '新建集合'), items: [] }
                   state.collections.push(target)
                 }
                 if (!target) {
-                  target = { id: uid(), type: 'collection', name: 'My Collection', items: [] }
+                  target = { id: uid(), type: 'collection', name: tr('coll.myCollection', '我的集合'), items: [] }
                   state.collections.push(target)
                 }
                 const node = { id: uid(), type: 'request', name: finalName, request: clone(tab.request) }
@@ -1251,7 +1252,7 @@
               closeModal()
               renderAll()
               saveSoon()
-              toast('Saved')
+              toast(tr('toast.saved', '已保存'))
             }
           }
         ]
@@ -1260,12 +1261,12 @@
     }
 
     openModal({
-      title: 'Save request',
+      title: tr('save.title', '保存请求'),
       body,
       actions: [
-        { label: 'Cancel', kind: 'secondary' },
+        { label: tr('btn.cancel', 'Cancel'), kind: 'secondary' },
         {
-          label: 'Save',
+          label: tr('btn.save', '保存'),
           kind: 'primary',
           onClick: () => {
             const finalName = name.value.trim() || 'Untitled'
@@ -1276,7 +1277,7 @@
             closeModal()
             renderAll()
             saveSoon()
-            toast('Saved')
+            toast(tr('toast.saved', '已保存'))
           }
         }
       ]
@@ -1285,18 +1286,18 @@
 
   function createRequestIn (node) {
     const req = makeRequest()
-    req.name = 'Untitled'
+    req.name = tr('tab.untitled', '未命名')
     const tab = makeTab(req)
     state.tabs.push(tab)
     state.activeTabId = tab.id
     tab.dirty = true
     renderAll()
-    toast('New request tab — press ⌘S to save into the folder')
+    toast(tr('msg.newTabHint', '新请求标签页 — 按 ⌘S 保存到文件夹'))
     saveSoon()
   }
 
   function createFolderIn (node) {
-    const folder = { id: uid(), type: 'folder', name: 'New folder', items: [] }
+    const folder = { id: uid(), type: 'folder', name: tr('folder.new', '新建文件夹'), items: [] }
     node.items.push(folder)
     renderSidebar()
     saveSoon()
@@ -1309,12 +1310,12 @@
     input.value = node.name || ''
     body.appendChild(input)
     openModal({
-      title: 'Rename',
+      title: tr('dlg.rename', '重命名'),
       body,
       actions: [
-        { label: 'Cancel', kind: 'secondary' },
+        { label: tr('btn.cancel', 'Cancel'), kind: 'secondary' },
         {
-          label: 'Rename',
+          label: tr('dlg.rename', '重命名'),
           kind: 'primary',
           onClick: () => {
             node.name = input.value.trim() || node.name
@@ -1330,12 +1331,12 @@
 
   function deleteNode (node) {
     openModal({
-      title: 'Delete',
+      title: tr('dlg.delete', '删除'),
       body: el('p', null, `Delete "${node.name}"? This cannot be undone.`),
       actions: [
-        { label: 'Cancel', kind: 'secondary' },
+        { label: tr('btn.cancel', 'Cancel'), kind: 'secondary' },
         {
-          label: 'Delete',
+          label: tr('dlg.delete', '删除'),
           kind: 'danger',
           onClick: () => {
             removeNode(node.id, state.collections)
@@ -1360,18 +1361,18 @@
   // ---------------------------------------------------------------- cURL
   function importCurlModal () {
     const body = el('div')
-    body.appendChild(el('div', 'mini-label', 'Paste a cURL command'))
+    body.appendChild(el('div', 'mini-label', tr('dlg.pasteCurl', '粘贴 cURL 命令')))
     const ta = el('textarea', 'code-area')
     ta.style.minHeight = '180px'
     ta.placeholder = "curl 'https://api.example.com/v1/things' -H 'Authorization: Bearer …'"
     body.appendChild(ta)
     openModal({
-      title: 'Import cURL',
+      title: tr('dlg.importCurl', '导入 cURL'),
       body,
       actions: [
-        { label: 'Cancel', kind: 'secondary' },
+        { label: tr('btn.cancel', 'Cancel'), kind: 'secondary' },
         {
-          label: 'Import',
+          label: tr('btn.import', 'Import'),
           kind: 'primary',
           onClick: () => {
             const result = window.Curl.parse(ta.value)
@@ -1405,7 +1406,7 @@
     const payload = buildPayload(req)
     const text = window.Curl.build(req, payload.url, payload.headers, req.body && req.body.type !== 'none' ? { present: true } : null)
     await api.clipboard.write(text)
-    toast('cURL copied to clipboard')
+    toast(tr('msg.curlCopied', 'cURL 已复制到剪贴板'))
   }
 
   // ---------------------------------------------------------------- environments modal
@@ -1420,12 +1421,12 @@
         name.className = 'mini-input'
         name.value = env.name
         name.style.maxWidth = '220px'
-        name.addEventListener('input', () => { env.name = name.value; renderEnvSelect(); saveSoon() })
+        name.addEventListener('input', () => { env.name = name.value; delete env.builtin; renderEnvSelect(); saveSoon() })
         head.appendChild(name)
         const activeBtn = el('button', `ghost-btn${env.id === state.activeEnvId ? ' is-active' : ''}`, env.id === state.activeEnvId ? 'active' : 'set active')
         activeBtn.addEventListener('click', () => { state.activeEnvId = env.id; render(); renderEnvSelect(); saveSoon() })
         head.appendChild(activeBtn)
-        const del = el('button', 'ghost-btn', 'delete')
+        const del = el('button', 'ghost-btn', tr('dlg.delete', '删除'))
         del.addEventListener('click', () => {
           state.environments = state.environments.filter((e) => e.id !== env.id)
           if (state.activeEnvId === env.id) state.activeEnvId = (state.environments[0] || {}).id || null
@@ -1439,12 +1440,12 @@
           onChange: (structural) => { saveSoon(); if (structural) render() }
         })
         card.appendChild(table)
-        const add = el('button', 'ghost-btn', '+ Add variable')
+        const add = el('button', 'ghost-btn', tr('env.addVariable', '+ 添加变量'))
         add.addEventListener('click', () => { env.vars.push({ key: '', value: '', enabled: true }); render() })
         card.appendChild(add)
         body.appendChild(card)
       })
-      const addEnv = el('button', 'ghost-btn', '+ Add environment')
+      const addEnv = el('button', 'ghost-btn', tr('env.addEnvironment', '+ 添加环境'))
       addEnv.addEventListener('click', () => {
         const env = { id: uid(), name: `Env ${state.environments.length + 1}`, vars: [] }
         state.environments.push(env)
@@ -1452,10 +1453,10 @@
         saveSoon()
       })
       body.appendChild(addEnv)
-      body.appendChild(el('p', 'muted small', 'Reference variables anywhere with {{name}}. Built-ins: {{$timestamp}}, {{$isoTimestamp}}, {{$uuid}}, {{$randomInt}}.'))
+      body.appendChild(el('p', 'muted small', tr('env.hint', '在任意位置用 {{name}} 引用变量。内置：{{$timestamp}}、{{$isoTimestamp}}、{{$uuid}}、{{$randomInt}}。')))
     }
     render()
-    openModal({ title: 'Environments', body, actions: [{ label: 'Done', kind: 'primary' }] })
+    openModal({ title: tr('env.title', '环境'), body, actions: [{ label: tr('btn.done', '完成'), kind: 'primary' }] })
   }
 
   // ---------------------------------------------------------------- modal & toast
@@ -1489,6 +1490,17 @@
     if (!tab || tab.request.kind !== 'http') return ''
     const payload = buildPayload(tab.request)
     return window.Curl.build(tab.request, payload.url, payload.headers, tab.request.body && tab.request.body.type !== 'none' ? { present: true } : null)
+  }
+
+  // ---------------------------------------------------------------- language
+  function applyLanguage (lang) {
+    state.settings.language = lang
+    if (window.I18N) window.I18N.set(lang)
+    if (api.setLanguage) api.setLanguage(lang)
+    renderHome(state.ui.toolQuery || '')
+    renderTabs()
+    if (state.ui.view === 'markdown' && typeof window.__moziRenderMarkdown === 'function') window.__moziRenderMarkdown()
+    saveSoon()
   }
 
   // ---------------------------------------------------------------- theme
@@ -1525,16 +1537,16 @@
     {
       id: 'dev', title: '开发', tools: [
         { id: 'http', name: '请求工具', tone: 'indigo', icon: '⇄', tag: '主力', desc: 'HTTP · GraphQL · WebSocket · SSE，集合、历史、环境变量、cURL' },
-        { id: 'jwt', name: 'JWT 解析', tone: 'cyan', icon: '⚿', desc: '拆 Header / Payload，过期与时间声明，HS256 验签' },
+        { id: 'jwt', name: 'JWT 解析', tone: 'cyan', icon: '⚿', desc: '拆解头部与载荷，查看过期与生效时间，支持 HS256 验签' },
         { id: 'regex', name: '正则测试', tone: 'violet', icon: '.*', desc: '实时高亮、分组捕获、替换预览、常用正则收藏' },
-        { id: 'codegen', name: 'cURL 转代码', tone: 'indigo', icon: '</>', desc: 'cURL 一键生成 Python / JS / Go / Java 请求代码' }
+        { id: 'codegen', name: 'cURL 转代码', tone: 'indigo', icon: '</>', desc: '把 cURL 转成 Python / JS / Go / Java 请求代码' }
       ]
     },
     {
       id: 'encode', title: '编码与转换', tools: [
         { id: 'escape', name: '字符转义', tone: 'cyan', icon: 'Esc', desc: 'JS / JSON / URL / HTML 实体 / Unicode 正向与反向转义' },
         { id: 'base64', name: 'Base64 工具箱', tone: 'amber', icon: '64', desc: '文本加解密 · 图片转 Base64 · Base64 转图片' },
-        { id: 'hash', name: 'Hash 摘要', tone: 'green', icon: '#', desc: 'MD5 / SHA-1 / SHA-256 / SHA-512，文本与文件' },
+        { id: 'hash', name: '哈希摘要', tone: 'green', icon: '#', desc: 'MD5 / SHA-1 / SHA-256 / SHA-512，文本与文件' },
         { id: 'timestamp', name: '时间戳转换', tone: 'pink', icon: 'Ts', desc: 'Unix 时间戳与日期互转、多时区对照、相对时间' }
       ]
     },
@@ -1542,7 +1554,7 @@
       id: 'text', title: '文本与生成', tools: [
         { id: 'json', name: 'JSON 格式化', tone: 'green', icon: '{ }', desc: '格式化、压缩、键排序、校验与错误定位' },
         { id: 'markdown', name: 'Markdown 编辑器', tone: 'violet', icon: 'M↓', desc: '实时预览、图片回显、Mermaid 流程图、导出 HTML' },
-        { id: 'generator', name: 'UUID / 密码', tone: 'cyan', icon: '⧉', desc: 'UUID v4/v7 批量、随机密码与强度估算' }
+        { id: 'generator', name: 'UUID / 密码生成', tone: 'cyan', icon: '⧉', desc: 'UUID v4/v7 批量、随机密码与强度估算' }
       ]
     }
   ]
@@ -1550,6 +1562,12 @@
   const VIEWS = ['home', ...TOOL_GROUPS.flatMap((g) => g.tools.map((t) => t.id))]
   // ⌘1 = 工具箱, ⌘2…⌘9 = the first eight tools in registry order
   const SHORTCUT_ORDER = VIEWS.slice(0, 9)
+
+  // translation helper: falls back to the Chinese source when a dictionary
+  // entry is missing, so a half-translated build never shows raw keys
+  function tr (key, fallback) {
+    return (window.I18N && window.I18N.t) ? window.I18N.t(key, fallback) : fallback
+  }
 
   function allTools () {
     return TOOL_GROUPS.flatMap((g) => g.tools.map((t) => Object.assign({ group: g.title }, t)))
@@ -1566,11 +1584,11 @@
     const recent = (state.ui.recent || []).filter((id) => allTools().some((t) => t.id === id))
     if (!q && recent.length) {
       const section = el('div', 'tool-group is-recent')
-      section.appendChild(el('h3', null, '最近使用'))
+      section.appendChild(el('h3', null, tr('home.recent', '最近使用')))
       const row = el('div', 'recent-row')
       for (const id of recent.slice(0, 6)) {
         const tool = allTools().find((t) => t.id === id)
-        const chip = el('button', 'recent-chip', tool.name)
+        const chip = el('button', 'recent-chip', tr(`tool.${tool.id}.name`, tool.name))
         chip.dataset.open = tool.id
         row.appendChild(chip)
       }
@@ -1583,7 +1601,7 @@
       if (!tools.length) continue
       shown += tools.length
       const section = el('div', 'tool-group')
-      section.appendChild(el('h3', null, group.title))
+      section.appendChild(el('h3', null, tr(`group.${group.id}`, group.title)))
       const row = el('div', 'row')
       for (const tool of tools) {
         const card = el('button', `tool-card${q ? ' is-match' : ''}`)
@@ -1591,8 +1609,8 @@
         card.dataset.tone = tool.tone
         const icon = el('span', 'tool-icon', tool.icon)
         card.appendChild(icon)
-        card.appendChild(el('span', 'tool-name', tool.name))
-        card.appendChild(el('span', 'tool-desc', tool.desc))
+        card.appendChild(el('span', 'tool-name', tr(`tool.${tool.id}.name`, tool.name)))
+        card.appendChild(el('span', 'tool-desc', tr(`tool.${tool.id}.desc`, tool.desc)))
         if (tool.tag) card.appendChild(el('span', 'tool-tag', tool.tag))
         row.appendChild(card)
       }
@@ -1653,6 +1671,20 @@
       const btn = e.target.closest('[data-theme-choice]')
       if (btn) applyTheme(btn.dataset.themeChoice)
     })
+    const langSeg = $('#langSeg')
+    if (langSeg) {
+      langSeg.addEventListener('click', (e) => {
+        const btn = e.target.closest('[data-lang-choice]')
+        if (btn) applyLanguage(btn.dataset.langChoice)
+      })
+    }
+    window.addEventListener('mozi-language', (e) => {
+      for (const btn of $$('#langSeg .seg-btn')) {
+        const active = btn.dataset.langChoice === e.detail
+        btn.classList.toggle('is-active', active)
+        btn.setAttribute('aria-checked', String(active))
+      }
+    })
     $('#toolGroups').addEventListener('click', (e) => {
       const target = e.target.closest('.tool-card, .recent-chip')
       if (target) showView(target.dataset.open)
@@ -1673,18 +1705,18 @@
       const body = el('div')
       const input = document.createElement('input')
       input.className = 'mini-input'
-      input.placeholder = 'Collection name'
+      input.placeholder = tr('coll.namePlaceholder', '集合名称')
       body.appendChild(input)
       openModal({
-        title: 'New collection',
+        title: tr('coll.new', '新建集合'),
         body,
         actions: [
-          { label: 'Cancel', kind: 'secondary' },
+          { label: tr('btn.cancel', 'Cancel'), kind: 'secondary' },
           {
-            label: 'Create',
+            label: tr('btn.create', 'Create'),
             kind: 'primary',
             onClick: () => {
-              state.collections.push({ id: uid(), type: 'collection', name: input.value.trim() || 'New collection', items: [] })
+              state.collections.push({ id: uid(), type: 'collection', name: input.value.trim() || tr('coll.new', '新建集合'), items: [] })
               closeModal()
               renderSidebar()
               saveSoon()
@@ -1746,7 +1778,7 @@
     $('#btn-cookie-clear').addEventListener('click', () => {
       state.cookies = []
       renderCookies()
-      toast('Cookie 已清空')
+      toast(tr('cookie.cleared', 'Cookie 已清空'))
       saveSoon()
     })
 
@@ -1778,7 +1810,7 @@
         tab.request.body.text = JSON.stringify(JSON.parse(tab.request.body.text || '{}'), null, 2)
         renderBody()
         markDirty()
-        toast('JSON formatted')
+        toast(tr('msg.jsonFormatted', 'JSON 已格式化'))
       } catch (err) { toast(`Invalid JSON: ${err.message}`) }
     })
 
@@ -1814,7 +1846,7 @@
       if (!tab || !tab.response) return
       const res = tab.response
       await api.clipboard.write(res.text || res.base64 || res.error || '')
-      toast('Response copied')
+      toast(tr('msg.responseCopied', '响应已复制'))
     })
     $('#btn-clear-resp').addEventListener('click', () => { const tab = activeTab(); if (tab) { tab.response = null; renderResponse() } })
 
@@ -1854,6 +1886,8 @@
     window.addEventListener('keydown', (e) => {
       if (e.key !== 'Escape') return
       if (!$('#modal').classList.contains('hidden')) { closeModal(); return }
+      // a tool can claim Esc (e.g. leaving the markdown fullscreen preview)
+      if (typeof window.__moziHandleEscape === 'function' && window.__moziHandleEscape()) { e.preventDefault(); return }
       if (state.ui.view !== 'home') {
         e.preventDefault()
         showView('home')
@@ -1921,6 +1955,12 @@
       state.cookies = jar.cookies
     }
     wire()
+    if (window.I18N) window.I18N.init(state.settings.language || 'zh')
+    for (const btn of $$('#langSeg .seg-btn')) {
+      const active = btn.dataset.langChoice === (window.I18N ? window.I18N.get() : 'zh')
+      btn.classList.toggle('is-active', active)
+      btn.setAttribute('aria-checked', String(active))
+    }
     applyTheme(state.settings.theme || 'system')
     renderAll()
     renderSidebar()
