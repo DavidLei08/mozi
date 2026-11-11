@@ -199,6 +199,41 @@ npm run dist:win   # Windows NSIS + 便携版
 只保留 `en` 与 `zh_CN` 语言包（`electronLanguages`），Electron 自带的其余 60 多个
 locale 会被裁掉，安装体积减少约 9 MB。
 
+### Windows 提示「未知发布者」
+
+发布物是**未签名**的，所以 Windows 会说「未知发布者」——这是缺证书，不是打包错误。
+Windows 只根据 Authenticode 签名判断发布者，没有签名就一定这样显示（已验证：发布出的
+`Mozi-0.4.6.exe` 的 PE 证书表大小为 0）。
+
+装之前先选一种方式：
+
+1. **点掉提示**：安装器窗口 →「更多信息」→「仍要运行」。「仍要运行」默认藏在「更多信息」里，
+   不展开就只看到「未知发布者」和一个「不运行」按钮。
+2. **解除文件锁定**（下载来的文件带 Mark-of-the-Web）：右键 exe →「属性」→ 勾选「解除锁定」→ 确定。
+   命令行等价：`Unblock-File .\Mozi-Setup-0.4.6.exe`
+3. **免安装**：用 `Mozi-0.4.6.exe`（便携版，双击即用）或 `Mozi-0.4.6-win-x64.zip`（解压后运行
+   `Mozi.exe`），都不经过安装器。安装器是**按当前用户安装**、不需要管理员权限的。
+
+如果公司策略直接拦截（「此应用已被阻止」），需要管理员放行，或改用已签名构建。
+
+### 想彻底去掉提示
+
+| 方式 | 适用 | 说明 |
+|---|---|---|
+| 购买代码签名证书（OV/EV） | 正式发布 | 把证书配到 `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD`，CI 会自动签名；EV 证书可直接获得 SmartScreen 信誉 |
+| [Azure Trusted Signing](https://azure.microsoft.com/products/trusted-signing) | 正式发布 | 订阅制，需通过主体身份验证 |
+| 自签名 | 个人/内网自用 | 运行 `tools/sign-windows.ps1`：生成代码签名证书、在当前用户下信任它、给 `release/` 里的产物签名 |
+
+```powershell
+# 自签名（Windows PowerShell，项目根目录）
+powershell -ExecutionPolicy Bypass -File tools/sign-windows.ps1 -CreateCert -Trust
+powershell -ExecutionPolicy Bypass -File tools/sign-windows.ps1 -Path release
+```
+
+自签名会让**信任了该证书的机器**把发布者显示成证书主体、不再以「未知发布者」拦截；
+它不会积累 SmartScreen 信誉，别人机器上仍是未知发布者。该脚本未在本仓库的 CI 中执行过
+（CI 不装 PowerShell 运行时），请在 Windows 上按其输出核对结果。
+
 ### 签名与公证
 
 签名是**凭据驱动**的：仓库 Secrets 配好就自动签名 + 公证，没配就照常产出未签名包，

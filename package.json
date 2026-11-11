@@ -1,10 +1,13 @@
 {
   "name": "mozi",
   "productName": "Mozi",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Mozi — a local toolbox for API testing, encoding, JSON, images and Markdown",
   "main": "src/main/main.js",
-  "author": "Mozi contributors",
+  "author": {
+    "name": "Mozi contributors",
+    "email": "44797226+DavidLei08@users.noreply.github.com"
+  },
   "license": "MIT",
   "private": true,
   "scripts": {
@@ -71,8 +74,16 @@
           "arch": [
             "x64"
           ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "x64"
+          ]
         }
-      ]
+      ],
+      "requestedExecutionLevel": "asInvoker",
+      "artifactName": "${productName}-${version}-win-${arch}.${ext}"
     },
     "nsis": {
       "oneClick": false,
@@ -93,7 +104,8 @@
     "electronLanguages": [
       "en",
       "zh_CN"
-    ]
+    ],
+    "copyright": "Copyright © 2026 Mozi contributors"
   },
   "homepage": "https://github.com/DavidLei08/mozi#readme",
   "repository": {
