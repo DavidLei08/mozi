@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
   <meta charset="utf-8" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob: https: http: file:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'none'" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: blob: https: http: file:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'none'; frame-src 'self'" />
   <title>Mozi</title>
   <link rel="stylesheet" href="styles.css" />
   <script src="lib/i18n-dict.js"></script>
@@ -487,6 +487,19 @@
       </div>
     </section>
 
+    <!-- ======================= GAME ======================= -->
+    <section class="view tool-view" id="view-game" data-view="game">
+      <header class="tool-head">
+        <button class="brand-mark as-btn back-mark" data-back title="返回工具箱" data-i18n-title="nav.backHome">M</button>
+        <h2 data-i18n="tool.game.name">小游戏</h2>
+        <span class="muted small">几猫国产3A大作</span>
+        <div class="tool-head-actions">
+          <button class="btn-secondary" id="game-restart" data-i18n="game.restart">重新开始</button>
+        </div>
+      </header>
+      <iframe id="game-frame" title="几猫国产3A大作" sandbox="allow-scripts allow-pointer-lock" allow="fullscreen" allowfullscreen></iframe>
+    </section>
+
     <!-- ======================= MARKDOWN ======================= -->
     <section class="view tool-view" id="view-markdown" data-view="markdown">
       <header class="tool-head drag-region">
@@ -900,11 +913,7 @@
 
   <div id="toast" class="toast hidden"></div>
 
-  <script>
-    window.__errors = []
-    window.addEventListener('error', (e) => window.__errors.push(`${e.message} @ ${e.filename}:${e.lineno}`))
-    window.addEventListener('unhandledrejection', (e) => window.__errors.push(`promise: ${e.reason && e.reason.message ? e.reason.message : e.reason}`))
-  </script>
+  <script src="errors.js"></script>
   <script src="lib/json-tree.js"></script>
   <script src="lib/curl.js"></script>
   <script src="lib/split.js"></script>

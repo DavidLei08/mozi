@@ -165,14 +165,14 @@ async function runSmoke (win, app) {
     console.log('HOME_DIAG', JSON.stringify(home))
     check('app title is Mozi', home.title === 'Mozi', home.title)
     check('home is the entry view', home.active === 'home', home.active)
-    check('thirteen tool cards', home.cards === 13, String(home.cards))
-    check('cards named correctly', ['请求工具', '字符转义', 'JSON 格式化', 'Base64 工具箱', 'Markdown 编辑器', 'JWT 解析', '正则测试', 'cURL 转代码', '哈希摘要', '时间戳转换', 'UUID / 密码生成', '记事本', '待办任务'].every((n) => home.names.includes(n)), home.names.join(','))
+    check('fourteen tool cards', home.cards === 14, String(home.cards))
+    check('cards named correctly', ['请求工具', '字符转义', 'JSON 格式化', 'Base64 工具箱', 'Markdown 编辑器', 'JWT 解析', '正则测试', 'cURL 转代码', '哈希摘要', '时间戳转换', 'UUID / 密码生成', '记事本', '待办任务', '小游戏'].every((n) => home.names.includes(n)), home.names.join(','))
     const groupCount = JSON.parse(await step(`JSON.stringify(document.querySelectorAll('.tool-group').length)`))
-    check('home is grouped', groupCount === 4, String(groupCount))
+    check('home is grouped', groupCount === 5, String(groupCount))
     const freshStrip = JSON.parse(await step(`JSON.stringify({ hasStrip: !!document.querySelector('.tool-group.is-recent') })`))
     check('fresh profile has no recent strip', !freshStrip.hasStrip)
     const icons = JSON.parse(await step(`JSON.stringify([...document.querySelectorAll('.tool-icon')].map(e => e.textContent))`))
-    check('every tool icon renders', icons.length === 13 && icons.every((i) => i && i.trim().length > 0 && !/\n/.test(i)), JSON.stringify(icons))
+    check('every tool icon renders', icons.length === 14 && icons.every((i) => i && i.trim().length > 0 && !/\n/.test(i)), JSON.stringify(icons))
     const saveBtn = JSON.parse(await step(`JSON.stringify({
       exists: !!document.querySelector('#btn-save'),
       label: (document.querySelector('#btn-save') || {}).textContent || '',
@@ -754,7 +754,7 @@ async function runSmoke (win, app) {
       text: [...new Set([...document.querySelectorAll('.back-mark')].map(e => e.textContent))],
       noArrows: document.querySelectorAll('.back-btn').length
     })`))
-    check('every tool uses the icon back mark', backMarks.count === 12 && backMarks.text.join('') === 'M' && backMarks.noArrows === 0, JSON.stringify(backMarks))
+    check('every tool uses the icon back mark', backMarks.count === 13 && backMarks.text.join('') === 'M' && backMarks.noArrows === 0, JSON.stringify(backMarks))
 
     // ============ MARKDOWN OPEN LOCAL FILE ============
     const mdFile = path.join(app.getPath('temp'), 'mozi-smoke-open.md')
@@ -1778,7 +1778,7 @@ async function runSmoke (win, app) {
     })()`))
     check('home search filters tools', searchResult.filtered === 1 && searchResult.names[0] === '正则测试', `${searchResult.filtered}/${searchResult.names.join(',')}`)
     check('home search shows empty state', searchResult.empty)
-    check('home search restores list', searchResult.restored === 13, String(searchResult.restored))
+    check('home search restores list', searchResult.restored === 14, String(searchResult.restored))
     const recentClick = JSON.parse(await step(`(async () => {
       const wait = (ms) => new Promise(r => setTimeout(r, ms))
       document.querySelector('#toolSearch').value = ''
@@ -1823,7 +1823,19 @@ async function runSmoke (win, app) {
       return JSON.stringify({ active: document.querySelector('.view.is-active').dataset.view })
     })()`))
     check('Esc returns to toolbox', escHome.active === 'home', escHome.active)
-    check('toolbox has thirteen tools', backHome.cards === 13, String(backHome.cards))
+    check('toolbox has fourteen tools', backHome.cards === 14, String(backHome.cards))
+
+    await step(`document.querySelector('.tool-card[data-open="game"]').click()`)
+    let gameFrame
+    for (let attempt = 0; attempt < 300; attempt++) {
+      gameFrame = win.webContents.mainFrame.frames.find(f => f.url.includes('/games/jimao/index.html'))
+      if (gameFrame && await gameFrame.executeJavaScript(`!!document.querySelector('#boot.done')`)) break
+      await new Promise(resolve => setTimeout(resolve, 200))
+    }
+    const gameState = gameFrame && await gameFrame.executeJavaScript(`({ready: !!document.querySelector('#boot.done'), errors: window.__errors || [], isolated: (() => { try { return !parent.api } catch { return true } })()})`)
+    check('game boots in isolated frame', gameState && gameState.ready && gameState.isolated && !gameState.errors.length, JSON.stringify(gameState))
+    await step(`document.querySelector('#view-game [data-back]').click()`)
+    check('leaving game unloads its frame', await step(`!document.querySelector('#game-frame').hasAttribute('src')`))
 
     clearTimeout(watchdog)
     if (failures.length) {

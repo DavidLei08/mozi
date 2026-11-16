@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Mozi 工具箱",
+  "version": "0.5.0",
+  "description": "本地优先的开发工具箱：API 调试、JSON、编码、Markdown、记事本与待办。",
+  "minimum_chrome_version": "120",
+  "permissions": [
+    "storage",
+    "unlimitedStorage",
+    "clipboardRead",
+    "clipboardWrite"
+  ],
+  "host_permissions": [
+    "http://*/*",
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "打开 Mozi 工具箱",
+    "default_icon": "icon.png"
+  },
+  "icons": {
+    "128": "icon.png"
+  },
+  "content_security_policy": {
+    "extension_pages": "default-src 'self'; script-src 'self'; object-src 'none'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https: http:; connect-src https: http: wss: ws:;",
+    "sandbox": "sandbox allow-scripts allow-pointer-lock; default-src 'self' data: blob:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'none';"
+  },
+  "sandbox": {
+    "pages": [
+      "games/jimao/index.html"
+    ]
+  }
+}

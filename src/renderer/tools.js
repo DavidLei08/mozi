@@ -541,7 +541,7 @@ flowchart LR
     function mdShowFile () {
       const label = document.querySelector('#md-file')
       if (!label) return
-      label.textContent = mdFilePath ? mdFilePath : tr('md.unsavedDraft', '未保存的草稿')
+      label.textContent = mdFilePath ? (api.platform === 'chrome-extension' ? mdFilePath.split('/').pop() : mdFilePath) : tr('md.unsavedDraft', '未保存的草稿')
       label.title = mdFilePath ? mdFilePath : tr('md.unsavedDraftHint', '草稿会自动保存，重启后仍在；点「保存」写入 .md 文件')
     }
 
@@ -581,6 +581,12 @@ flowchart LR
       for (const img of root.querySelectorAll('img[src]')) {
         const original = img.getAttribute('src')
         if (!isRelativeSrc(original)) continue
+        if (api.platform === 'chrome-extension') {
+          img.removeAttribute('src')
+          img.classList.add('img-unresolved')
+          img.title = 'Chrome 扩展请使用插入图片或粘贴图片'
+          continue
+        }
         if (!mdBaseDir) {
           img.classList.add('img-unresolved')
           img.title = tr('md.needBaseDir', '相对路径需要先打开本地 .md 文件')
@@ -593,7 +599,7 @@ flowchart LR
     }
 
     function setBaseDir (dir, opts) {
-      mdBaseDir = String(dir || '')
+      mdBaseDir = api.platform === 'chrome-extension' ? '' : String(dir || '')
       try {
         if (mdBaseDir) localStorage.setItem(MD_BASE_KEY, mdBaseDir)
         else localStorage.removeItem(MD_BASE_KEY)
@@ -651,7 +657,7 @@ flowchart LR
         preview.textContent = `渲染失败：${err.message}`
       }
       resolveRelativeImages(preview)
-      renderMermaid(preview, myToken).catch(() => {})
+      const diagrams = renderMermaid(preview, myToken).catch(() => {})
       const fullBtn = document.querySelector('#md-full')
       if (fullBtn) {
         const label = mdFullscreen ? tr('md.exitFullscreen', '退出全屏') : tr('md.fullscreen', '全屏预览')
@@ -662,6 +668,7 @@ flowchart LR
       const chars = text.length
       const words = (text.match(/[\u4e00-\u9fa5]|[A-Za-z0-9_\u00c0-\u024f]+/g) || []).length
       stats.textContent = `${chars} 字符 · ${words} 词`
+      return diagrams
     }
 
     if (mdBaseDir) setBaseDir(mdBaseDir, { rerender: false })
@@ -674,15 +681,16 @@ flowchart LR
     render()
     on('#md-full', 'click', () => setFullscreen(!mdFullscreen))
     on('#md-exit-full', 'click', () => setFullscreen(false))
-    const mdPersist = debounce(mdSaveDraft, 400)
+    const mdPersist = api.platform === 'chrome-extension' ? mdSaveDraft : debounce(mdSaveDraft, 400)
     async function saveMarkdown (forceDialog) {
       const content = input.value
       if (!forceDialog && mdFilePath) {
         const result = await api.files.writeText({ path: mdFilePath, content })
         if (result && result.ok) {
+          mdFilePath = result.path || mdFilePath
           mdSavedText = content
           mdUpdateDirty()
-          toast(tr('md.savedTo', '已保存到 {name}').replace('{name}', mdFilePath.split('/').pop()))
+          toast(result.downloaded ? '已提交浏览器下载，请在下载列表查看' : tr('md.savedTo', '已保存到 {name}').replace('{name}', mdFilePath.split('/').pop()))
           mdSaveDraft(); mdShowFile(); return
         }
         toast(`${tr('md.saveFailed', '保存失败')}: ${(result && result.error) || mdFilePath}`)
@@ -701,7 +709,9 @@ flowchart LR
         setBaseDir(dirName(result.path), { rerender: false })
         mdSaveDraft()
         mdShowFile()
-        toast(tr('md.savedTo', '已保存到 {name}').replace('{name}', String(result.path).split('/').pop()))
+        toast(result.downloaded ? '已提交浏览器下载，请在下载列表查看' : tr('md.savedTo', '已保存到 {name}').replace('{name}', String(result.path).split('/').pop()))
+      } else if (result && result.error) {
+        toast(`${tr('md.saveFailed', '保存失败')}: ${result.error}`)
       }
     }
     on('#md-save-as', 'click', () => { saveMarkdown(true) })
@@ -748,7 +758,10 @@ flowchart LR
 
     $('#md-open').addEventListener('click', async () => {
       const result = await api.dialog.openText({ filters: [{ name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'txt'] }] })
-      if (!result.ok) return
+      if (!result.ok) {
+        if (result.error) toast(`${tr('md.open', '打开文件失败')}: ${result.error}`)
+        return
+      }
       openMarkdownFile(result.path, result.content)
       const name = String(result.path).split(/[\\/]/).pop()
       toast(`已打开 ${name}`)
@@ -759,6 +772,7 @@ flowchart LR
       copy(preview.innerHTML, 'HTML')
     })
     $('#md-export').addEventListener('click', async () => {
+      await render()
       const html = `<!doctype html>
 <html lang="zh-CN">
 <head>
@@ -779,7 +793,8 @@ ${preview.innerHTML}
 </html>
 `
       const result = await api.dialog.saveText({ defaultName: 'mozi-markdown.html', content: html, filters: [{ name: 'HTML', extensions: ['html'] }] })
-      if (result.ok) toast(`已导出到 ${result.path}`)
+      if (result.ok) toast(result.downloaded ? '已提交浏览器下载，请在下载列表查看' : `已导出到 ${result.path}`)
+      else if (result.error) toast(`${tr('md.saveFailed', '保存失败')}: ${result.error}`)
     })
 
     // ---- in-editor quick actions -------------------------------------------
@@ -972,6 +987,7 @@ ${preview.innerHTML}
     window.__moziRenderMarkdown = initMarkdown()
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init)
-  else init()
+  const start = () => Promise.resolve(window.__moziReady).then(init)
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start)
+  else start()
 })()

@@ -51,7 +51,7 @@ jobs:
       # No screenshots on CI: capturePage is the step that stalls on headless
       # runners, and the assertions do not need it. The watchdog turns any
       # remaining stall into a fast failure instead of a 6-hour job.
-      - run: npm run smoke -- --no-sandbox --disable-gpu
+      - run: npm run smoke -- --no-sandbox --use-angle=swiftshader --enable-unsafe-swiftshader
         env:
           MOZI_SMOKE_OUT: ${{ runner.temp }}/mozi-smoke.png
           MOZI_SMOKE_NO_SHOTS: '1'
@@ -152,8 +152,25 @@ jobs:
             release/*.exe
             release/*.blockmap
 
+  chrome:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run dist:chrome
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mozi-chrome
+          path: release/*-chrome.zip
+          if-no-files-found: error
+
   release:
-    needs: build
+    needs: [build, chrome]
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
@@ -165,49 +182,29 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           generate_release_notes: true
+          make_latest: true
           # a re-tagged build must be able to replace its own assets
           overwrite_files: true
           files: dist/*
           body: |
-            本地优先的桌面工具箱，13 个工具，数据不出机器。
+            Mozi v0.5.0：桌面与 Chrome 扩展工具箱，共 14 个工具。
 
-            ## 安装（先读这条）
+            ## 新增
 
-            产物**未签名**，Windows 会显示「未知发布者」。这不是打包错误：Windows 只按
-            Authenticode 签名判断发布者，没有证书就一定这样显示。三种处理方式：
+            - Chrome Manifest V3 扩展：点击图标打开独立工作台，数据保存在浏览器本地。
+            - 小游戏：内置「几猫国产3A大作」，支持离线运行、重新开始和返回工具箱。
+            - 自动构建 Chrome 扩展 ZIP，与 macOS、Windows 产物一同发布。
 
-            1. 安装器窗口点「更多信息」→「仍要运行」（该按钮默认折叠在「更多信息」里）
-            2. 右键 exe →「属性」→ 勾选「解除锁定」→ 确定，或 `Unblock-File .\Mozi-Setup-0.4.6.exe`
-            3. 用免安装版本：`Mozi-0.4.6.exe`（便携版）或 `Mozi-0.4.6-win-x64.zip`（解压运行 `Mozi.exe`）
+            ## 修复
 
-            安装器按当前用户安装，不需要管理员权限。要彻底去掉提示需要代码签名证书：
-            配好仓库 Secrets `WIN_CSC_LINK` / `WIN_CSC_KEY_PASSWORD` 后 CI 会自动签名；
-            个人自用也可用仓库里的 `tools/sign-windows.ps1` 自签名。
+            - Markdown 原生文件接口不可用时，改用普通文件选择器和浏览器下载；文件操作失败显示原因。
+            - HTML 导出等待最新 Markdown 与 Mermaid 渲染，避免导出旧内容。
+            - 笔记、待办和 Markdown 草稿保存与启动恢复；扩展 WebSocket 发送接口兼容。
 
-            ## 0.4.6
+            ## 安装
 
-            - Windows 增加 **zip** 分发（免安装、无需经过安装器），并显式声明为**免管理员**运行
-            - 安装包与便携版补充版本信息（公司名 / 版权），文件属性不再空白
-            - 文档补充「未知发布者」的成因、三种处理方式与签名方案
+            - Chrome：下载 `Mozi-0.5.0-chrome.zip` 并解压，进入 `chrome://extensions`，开启开发者模式，加载包含 `manifest.json` 的文件夹。
+            - macOS：根据芯片选择 arm64 或 x64 的 DMG / ZIP。
+            - Windows：安装包 `Mozi-Setup-0.5.0.exe`，便携版 `Mozi-0.5.0.exe`，或 `Mozi-0.5.0-win-x64.zip`。
 
-            ## 0.4.5 重点：Markdown 编辑器重做
-
-            - **头部操作改为图标按钮**，悬停显示提示（另存为 / 打开 / 全屏预览 / 插入示例 / 复制 HTML / 导出 HTML）
-            - **编辑框内快捷操作栏**：`B` `I` `H` `S`；`列表▾`（无序 / 有序 / 任务清单）、
-              `代码块▾`（行内代码 / 代码块 / 引用 + **26 种语言**）、`格式▾`（H1-H3 / 分隔线 / 清除标记）、
-              `插入▾`（表格 / 折叠块 / 日期 / 时间），另有图片与链接按钮
-            - **下拉同时只展开一个**：打开新菜单会自动收起其他，点击别处全部关闭
-            - **保存与另存为**：`⌘S` 写回已打开的 `.md`，没有文件则弹出保存框；按钮上的红点表示尚未写入文件
-            - **草稿自动保存**：内容与来源文件一并持久化，重启后自动恢复
-
-            ### 修复
-
-            - **下拉浮层背景透明**：`--panel` / `--muted` / `--line-strong` 等 6 个 CSS 变量被引用却从未定义，
-              导致弹层没有底板、弱化文字失去层次。两套主题均已补齐，并新增单元测试守卫
-            - **`⌘S` 在 Markdown 里会跳去请求工具**：原生菜单加速键先于页面 JS 触发，现改为视图感知的调度器
-            - **插入图片 / 粘贴图片完全无效**：主进程 `mimeForPath` 只有调用没有定义，已补上实现
-
-            ## 记事本与待办
-
-            - 记事本：富文本、三种方式插图、**可编辑标题**、草稿自动保存、导出 HTML
-            - 待办：主题 + 描述 + 预期完成时间，逾期标红、行内改期、按月份归档
+            未配置签名证书时，桌面产物未签名。扩展版受浏览器 Cookie、TLS 和文件访问规则限制，具体见 README。

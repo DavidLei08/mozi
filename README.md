@@ -1,13 +1,15 @@
 # Mozi
 
+当前版本：**0.5.0**，支持桌面与 Chrome 扩展，内置 14 个工具（含小游戏）。
+
 本地优先的桌面工具箱：API 调试、记事本、待办任务、Markdown 写作，加上 9 个常用的编码 / 文本工具，
-全部在一个窗口里，数据不出本机。
+全部在一个窗口里，数据不出本机。另附「小游戏」工具，点击即可打开几猫国产3A大作。
 
 ![Mozi 工具箱](.github/screenshot-home.png)
 
 ## 工具一览
 
-首页按 **开发 / 记录与任务 / 编码与转换 / 文本与生成** 四组排列，支持搜索过滤。
+首页按 **开发 / 记录与任务 / 编码与转换 / 文本与生成 / 休闲娱乐** 五组排列，支持搜索过滤。
 
 ### 开发
 
@@ -171,7 +173,7 @@ npm test       # 单元测试：HTTP / WS / SSE / cURL / codec / jwt / codegen /
 npm run smoke  # 端到端：起本地服务，走完全部工具的断言并截图
 ```
 
-单测 **170 项**，端到端 **193 项**。`npm run smoke` 覆盖：首页四组与 13 个工具卡片、
+单测 **183 项**，桌面端到端 **195 项**。`npm run smoke` 覆盖：首页五组与 14 个工具卡片、
 HTTP 请求与 JSON 树、WS 收发、SSE 流（GET 与 POST body）、集合保存落盘、cURL 导入导出、
 转义 / JSON / Base64（文本 + 图片三标签）/ 时间戳 / Hash（含已知向量校验）/ UUID 与密码 /
 正则 / JWT / 代码生成、Cookie 自动收集与回发（grant → jar → whoami 往返）、
@@ -282,7 +284,7 @@ src/
     smoke.js     端到端冒烟测试（仅在 --smoke 时加载）
   preload/       contextBridge 白名单
   renderer/
-    index.html   工具箱首页 + 13 个工具视图
+    index.html   工具箱首页 + 14 个工具视图
     app.js       请求工具 + 状态/持久化 + 工具注册表 + 主题与语言 + 菜单调度
     tools.js     转义 / JSON / Base64 / Markdown（含快捷操作与保存）
     tools2.js    时间戳 / Hash / UUID / 正则 / JWT / 代码生成
@@ -308,3 +310,51 @@ node node_modules/electron/install.js
 ## License
 
 MIT
+
+## Chrome 扩展版
+
+Chrome 扩展与 Electron 桌面版共用工具界面，点击扩展图标会打开独立标签页；再次点击会聚焦已有的 Mozi 标签页。
+
+```bash
+npm run build:chrome   # 输出 release/chrome-extension/
+npm run dist:chrome    # 同时生成 release/Mozi-<version>-chrome.zip
+```
+
+本地安装：打开 `chrome://extensions` → 开启「开发者模式」→「加载已解压的扩展程序」→ 选择 `release/chrome-extension` 文件夹。
+ZIP 分发包需要先解压，再选择包含 `manifest.json` 的目录。最低 Chrome 版本为 120。修改源码后重新构建，并在扩展管理页点「重新加载」，再刷新 Mozi 标签页。
+
+- **数据**：集合、历史、笔记、待办与 Markdown 草稿保存在 `chrome.storage.local`，与桌面版的数据独立，不会自动迁移。卸载扩展会清除扩展数据。不要同时手动打开多个 Mozi 标签页编辑。
+- **文件**：通过 Chrome 文件选择器授权读写；Markdown 在同一会话中可保存回已打开文件，刷新/重启后首次保存需要重新选目标文件。若原生文件接口不可用或被拒绝，自动改用普通文件选择器打开、浏览器下载保存副本（请查看 Chrome 下载列表，不会覆盖原文件）。请求上传文件刷新后也需重新选择。相对路径图片不能直接读取，请插入/粘贴图片或使用网络图片。Hash 单文件上限为 128 MB。
+- **网络**：支持 HTTP、GraphQL、表单/文件上传、WebSocket 和 GET/POST SSE。HTTP/SSE 不携带浏览器 Cookie，也不自动收集 `Set-Cookie`；独立 Cookie Jar 不可用，匹配的启用项会明确报错。WebSocket 的 Cookie 由浏览器管理，不能自定义握手头。Chrome 管理的请求头（如 `Host`、`Cookie`、`Content-Length`）不能手动设置，也不能跳过 TLS 校验、发送 GET/HEAD 请求体或查看未跟随的重定向响应。响应大小是解压后的大小，不展示重定向链与 HTTP 协议版本。关闭工具标签页会结束流连接。
+- **快捷键**：`⌘/Ctrl+S` 已接入工具保存；部分桌面快捷键（例如切换标签页、新建窗口）会被 Chrome 优先处理，可使用页面按钮。
+- **权限**：`storage` / `unlimitedStorage` 保存含图片的本地笔记；剪贴板读写用于复制/粘贴按钮；HTTP/HTTPS 主机权限用于向用户指定的 API 发请求。没有网页内容脚本，也不注入或修改浏览的网页。跨域请求和脚本策略遵循 [Chrome 扩展网络请求规则](https://developer.chrome.com/docs/extensions/develop/concepts/network-requests) 与 [Manifest V3 CSP](https://developer.chrome.com/docs/extensions/reference/manifest/content-security-policy)。
+
+扩展回归检查（测试依赖只安装在忽略的 `.cache` 目录）：
+
+```bash
+npm install --prefix .cache/chrome-test-tools playwright
+npx --prefix .cache/chrome-test-tools playwright install chromium
+npm run smoke:chrome
+npm test
+```
+
+`smoke:chrome` 使用临时浏览器配置实际加载 MV3 扩展，验证跨域 HTTP、文件句柄读写和上传（选择器 UI 替换为测试句柄）、WebSocket、POST SSE、Mermaid、本地存储恢复与 CSP。测试数据不会写入日常 Chrome 配置。
+
+也可使用支持 CDP 扩展加载的本机 Chrome，跳过测试浏览器下载：
+
+```bash
+MOZI_CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" npm run smoke:chrome
+```
+
+此模式还验证扩展图标聚焦已有工作台、关闭后重新打开并恢复数据。
+
+
+## 小游戏
+
+首页「休闲娱乐」分组新增 **小游戏**，点击直接打开「几猫国产3A大作」。游戏随 Mozi 打包，桌面端和 Chrome 扩展端都可离线运行，不依赖原始微信附件路径。
+
+- 游戏顶部 **M** 返回工具箱；**重新开始**重载游戏。
+- 游戏内使用自身的键鼠操作与暂停菜单；进入后点击游戏区域操作。
+- 离开小游戏工具会卸载游戏、释放渲染与音频资源；再次进入从游戏首页开始。
+- 游戏运行于隔离框架，不访问 Mozi 的请求、笔记和认证数据；游戏自己的设置不跨次保留。
+- 需要浏览器支持 WebGL。源码位于 `src/renderer/games/jimao/`，保留用户提供的 HTML，扩展构建时自动拆出脚本以兼容 CSP。

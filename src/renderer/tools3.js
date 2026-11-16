@@ -28,6 +28,7 @@
   function debounce (fn, ms) {
     let timer = null
     return (...args) => {
+      if (api.platform === 'chrome-extension') return fn(...args)
       clearTimeout(timer)
       timer = setTimeout(() => fn(...args), ms)
     }
@@ -576,6 +577,8 @@
     render()
   }
 
-  initNotepad()
-  initTodos()
+  Promise.resolve(window.__moziReady).then(() => {
+    initNotepad()
+    initTodos()
+  })
 })()

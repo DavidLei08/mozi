@@ -1,7 +1,7 @@
 {
   "name": "mozi",
   "productName": "Mozi",
-  "version": "0.4.6",
+  "version": "0.5.0",
   "description": "Mozi — a local toolbox for API testing, encoding, JSON, images and Markdown",
   "main": "src/main/main.js",
   "author": {
@@ -16,7 +16,10 @@
     "test": "node --test test/*.test.js",
     "dist": "electron-builder",
     "dist:mac": "electron-builder --mac",
-    "dist:win": "electron-builder --win"
+    "dist:win": "electron-builder --win",
+    "build:chrome": "node tools/build-extension.js",
+    "dist:chrome": "node tools/build-extension.js --zip",
+    "smoke:chrome": "npm run build:chrome && node tools/smoke-chrome.js"
   },
   "dependencies": {
     "ws": "^8.22.1"
@@ -96,7 +99,6 @@
         "AppImage"
       ]
     },
-    "electronDist": "node_modules/electron/dist",
     "publish": null,
     "portable": {
       "artifactName": "${productName}-${version}.${ext}"

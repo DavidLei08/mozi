@@ -44,12 +44,16 @@
 
   function saveSoon () {
     clearTimeout(saveTimer)
+    if (api.platform === 'chrome-extension') { saveNow(); return }
     saveTimer = setTimeout(saveNow, 350)
   }
 
   async function saveNow () {
     const payload = {
       collections: state.collections,
+      notes: state.notes,
+      todos: state.todos,
+      mdDoc: state.mdDoc,
       cookies: state.cookies,
       history: state.history,
       environments: state.environments,
@@ -1611,6 +1615,11 @@
         { id: 'markdown', name: 'Markdown 编辑器', tone: 'violet', icon: 'M↓', desc: '实时预览、图片回显、Mermaid 流程图、导出 HTML' },
         { id: 'generator', name: 'UUID / 密码生成', tone: 'cyan', icon: '⧉', desc: 'UUID v4/v7 批量、随机密码与强度估算' }
       ]
+    },
+    {
+      id: 'play', title: '休闲娱乐', tools: [
+        { id: 'game', name: '小游戏', tone: 'amber', icon: '🎮', desc: '几猫国产3A大作 · 本地 3D 游戏，点击即玩' }
+      ]
     }
   ]
 
@@ -1690,6 +1699,12 @@
       if (recent.length > 8) recent.length = 8
     }
     state.ui.view = name
+    const game = $('#game-frame')
+    if (name === 'game') {
+      if (!game.hasAttribute('src')) game.src = 'games/jimao/index.html'
+    } else if (game.hasAttribute('src')) {
+      game.removeAttribute('src')
+    }
     for (const view of $$('.view')) view.classList.toggle('is-active', view.dataset.view === name)
     if (name === 'home') renderHome(state.ui.toolQuery || '')
     if (name === 'http') {
@@ -1757,6 +1772,9 @@
       back.addEventListener('click', () => showView('home'))
     }
     $('#btn-home').addEventListener('click', () => showView('home'))
+    $('#game-restart').addEventListener('click', () => {
+      $('#game-frame').src = 'games/jimao/index.html'
+    })
 
     $('#btn-new-request').addEventListener('click', () => newTab())
     $('#btn-new-tab').addEventListener('click', () => newTab())
@@ -2057,7 +2075,7 @@
     state.ui.respTab = 'pretty'
   }
 
-  init().catch((err) => {
+  window.__moziReady = init().catch((err) => {
     console.error(err)
     const box = document.createElement('pre')
     box.style.cssText = 'color:#f2555a;padding:20px;white-space:pre-wrap'
