@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Mozi 工具箱",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "本地优先的开发工具箱：API 调试、JSON、编码、Markdown、记事本与待办。",
   "minimum_chrome_version": "120",
   "permissions": [

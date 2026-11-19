@@ -103,3 +103,16 @@ test('longer paths sort first in the header', () => {
   const header = jar.headerValue('https://x.test/app/sub/page')
   assert.ok(header.indexOf('deep') < header.indexOf('shallow'), header)
 })
+
+test('cookie paths are case-sensitive and preserve trailing directory defaults', () => {
+  assert.equal(pathMatches('/API', '/api/items'), false)
+  assert.equal(parseSetCookie('sid=x', 'https://example.com/app/').path, '/app')
+  assert.equal(parseSetCookie('sid=x', 'https://example.com/a//b').path, '/a/')
+})
+
+test('rejects cookies for unrelated domains and Max-Age overrides Expires in either order', () => {
+  assert.equal(parseSetCookie('sid=x; Domain=other.com', 'https://example.com/'), null)
+  for (const attrs of ['Max-Age=0; Expires=Wed, 09 Jun 2100 10:18:14 GMT', 'Expires=Wed, 09 Jun 2100 10:18:14 GMT; Max-Age=0']) {
+    assert.ok(parseSetCookie('sid=x; ' + attrs, 'https://example.com/').expires <= Date.now())
+  }
+})

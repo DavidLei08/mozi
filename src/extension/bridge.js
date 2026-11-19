@@ -6,6 +6,7 @@
   const fileRefs = new Map()
   const sockets = new Map()
   const streams = new Map()
+  const requests = new Map()
   const MAX_BYTES = 30 * 1024 * 1024
   const fail = (error) => ({ ok: false, error: error.message || String(error) })
   const cancelled = (err) => err && err.name === 'AbortError'
@@ -171,8 +172,10 @@
   async function send (payload) {
     const start = Date.now()
     const options = payload.options || {}
+    if (payload.id && requests.has(payload.id)) return { error: 'Request already in progress' }
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 120000)
+    if (payload.id) requests.set(payload.id, controller)
+    const timeout = setTimeout(() => controller.abort(new Error('请求超时')), Number(options.timeoutMs) > 0 ? Number(options.timeoutMs) : 120000)
     try {
       checkTLS(options.insecure)
       const url = urlFor(payload.url)
@@ -197,8 +200,8 @@
         base64: textual ? undefined : toBase64(bytes), timings: { start, ttfb, total: Date.now() - start }
       }
     } catch (err) {
-      return { error: controller.signal.aborted ? '请求超时' : err.message, timings: { total: Date.now() - start } }
-    } finally { clearTimeout(timeout) }
+      return { error: controller.signal.aborted ? controller.signal.reason.message : err.message, timings: { total: Date.now() - start } }
+    } finally { clearTimeout(timeout); if (requests.get(payload.id) === controller) requests.delete(payload.id) }
   }
 
   function openWS (p) {
@@ -293,7 +296,11 @@
   window.api = {
     platform: 'chrome-extension',
     info: async () => ({ name: 'Mozi', version: chrome.runtime.getManifest().version, platform: 'browser', dark: matchMedia('(prefers-color-scheme: dark)').matches }),
-    http: { send },
+    http: { send, cancel: async (id) => {
+      const controller = requests.get(id)
+      if (controller) controller.abort(new Error('请求已取消'))
+      return { ok: !!controller }
+    } },
     ws: {
       open: openWS, onEvent: wsEvents.on,
       close: ({ id }) => { const socket = sockets.get(id); if (socket) socket.close(); return { ok: true } },

@@ -17,6 +17,7 @@ const isSmoke = process.argv.includes('--smoke')
 // Allows running under restricted environments (CI, sandboxes) with a workspace-local profile.
 const customUserData = process.env.MOZI_USER_DATA || process.env.POSTLITE_USER_DATA
 if (customUserData) app.setPath('userData', customUserData)
+else if (isSmoke) app.setPath('userData', nodeFs.mkdtempSync(path.join(require('node:os').tmpdir(), 'mozi-smoke-')))
 
 let win = null
 let store = null
@@ -67,6 +68,7 @@ function createWindow () {
 
   win.once('ready-to-show', () => win.show())
   win.on('closed', () => {
+    httpEngine.cancelAll()
     ws.closeAll(emitWs)
     for (const handle of sseHandles.values()) handle.close()
     sseHandles.clear()
@@ -135,7 +137,8 @@ function registerIpc () {
     dark: nativeTheme.shouldUseDarkColors
   }))
 
-  ipcMain.handle('http:send', async (_event, payload) => httpEngine.send(payload))
+  ipcMain.handle('http:send', async (event, payload) => httpEngine.send({ ...payload, id: payload.id ? `${event.sender.id}:${payload.id}` : undefined }))
+  ipcMain.handle('http:cancel', (event, id) => httpEngine.cancel(`${event.sender.id}:${id}`))
 
   ipcMain.handle('ws:open', (_event, payload) => { ws.open(payload, emitWs); return { ok: true } })
   ipcMain.handle('ws:send', (_event, { id, data, isBinary }) => ws.send(id, data, isBinary))

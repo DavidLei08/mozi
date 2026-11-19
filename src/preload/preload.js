@@ -11,7 +11,10 @@ const on = (channel, cb) => {
 contextBridge.exposeInMainWorld('api', {
   info: () => ipcRenderer.invoke('app:info'),
 
-  http: { send: (payload) => ipcRenderer.invoke('http:send', payload) },
+  http: {
+    send: (payload) => ipcRenderer.invoke('http:send', payload),
+    cancel: (id) => ipcRenderer.invoke('http:cancel', id)
+  },
 
   ws: {
     open: (payload) => ipcRenderer.invoke('ws:open', payload),

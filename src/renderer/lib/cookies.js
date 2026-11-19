@@ -5,7 +5,7 @@
  * Pure logic so it is unit-testable in Node: window.Cookies = { Jar, parseSetCookie, match }
  */
 const Cookies = (function () {
-  const MAX_AGE_RE = /max-age=(-?\d+)/i
+  const MAX_AGE_RE = /^max-age=(-?\d+)$/i
 
   function domainMatches (cookieDomain, requestHost) {
     const cd = String(cookieDomain || '').toLowerCase().replace(/^\./, '')
@@ -17,8 +17,8 @@ const Cookies = (function () {
   }
 
   function pathMatches (cookiePath, requestPath) {
-    const cp = String(cookiePath || '/').toLowerCase()
-    const rp = String(requestPath || '/').toLowerCase()
+    const cp = String(cookiePath || '/')
+    const rp = String(requestPath || '/')
     if (cp === '/') return true
     if (rp === cp) return true
     if (rp.startsWith(cp)) return rp[cp.length] === '/' || cp.endsWith('/')
@@ -49,10 +49,10 @@ const Cookies = (function () {
       enabled: true
     }
     if (url) {
-      const seg = url.pathname.split('/').filter(Boolean)
-      cookie.path = seg.length ? `/${seg.slice(0, -1).join('/')}` : '/'
+      cookie.path = url.pathname.slice(0, url.pathname.lastIndexOf('/')) || '/'
     }
 
+    let maxAge = null
     for (const attr of parts.slice(1)) {
       const a = attr.toLowerCase()
       if (a === 'secure') cookie.secure = true
@@ -68,9 +68,11 @@ const Cookies = (function () {
         if (!Number.isNaN(t)) cookie.expires = t
       } else {
         const m = MAX_AGE_RE.exec(attr)
-        if (m) cookie.expires = Date.now() + Number(m[1]) * 1000
+        if (m) maxAge = Number(m[1])
       }
     }
+    if (maxAge !== null) cookie.expires = Date.now() + maxAge * 1000
+    if (!url || !domainMatches(cookie.domain, url.hostname)) return null
     return cookie
   }
 

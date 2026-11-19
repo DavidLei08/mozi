@@ -25,11 +25,11 @@ test('extension hash decoding and all SHA digests', async () => {
   }
 })
 
-function bridge () {
+function bridge (fetchImpl) {
   const ctx = vm.createContext({
     window: { addEventListener () {} }, TextEncoder, TextDecoder, Headers, URL, URLSearchParams,
     AbortController, setTimeout, clearTimeout, crypto, Blob, FormData, Uint8Array, atob, btoa,
-    fetch: () => { throw new Error('Unexpected network request') }
+    fetch: fetchImpl || (() => { throw new Error('Unexpected network request') })
   })
   vm.runInContext(fs.readFileSync(require.resolve('../src/extension/bridge'), 'utf8'), ctx)
   return ctx.window.api
@@ -51,4 +51,20 @@ test('extension refuses unsupported requests before touching network', async () 
   assert.equal(api.ws.open({ id: '1', url: 'wss://example.com', headers: { Authorization: 'Bearer token' } }).ok, false)
   assert.equal(events[0].kind, 'error')
   assert.match(events[0].message, /握手/)
+})
+
+
+test('extension cancels HTTP and prevents duplicate request IDs', async () => {
+  let arrived
+  const ready = new Promise(resolve => { arrived = resolve })
+  const api = bridge((url, { signal }) => new Promise((resolve, reject) => {
+    signal.addEventListener('abort', () => reject(signal.reason), { once: true })
+    arrived()
+  }))
+  const pending = api.http.send({ id: 'pending', url: 'https://example.com' })
+  await ready
+  assert.match((await api.http.send({ id: 'pending', url: 'https://example.com' })).error, /already/)
+  assert.equal((await api.http.cancel('pending')).ok, true)
+  assert.match((await pending).error, /取消/)
+  assert.equal((await api.http.cancel('pending')).ok, false)
 })

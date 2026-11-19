@@ -122,6 +122,7 @@
       request: normalizeRequest(request),
       dirty: false,
       savedNodeId: null,
+      pendingRequestId: null,
       response: null,
       stream: { connected: false, streamId: uid(), log: [], status: null, count: 0 }
     }
@@ -451,6 +452,7 @@
     const idx = state.tabs.findIndex((t) => t.id === id)
     if (idx < 0) return
     const tab = state.tabs[idx]
+    if (tab.pendingRequestId) { api.http.cancel(tab.pendingRequestId); tab.pendingRequestId = null }
     if (tab.stream && tab.stream.connected) stopStream(tab)
     state.tabs.splice(idx, 1)
     if (state.activeTabId === id) {
@@ -729,8 +731,8 @@
     const tab = activeTab()
     if (!tab) return
     const btn = $('#btn-send')
-    if (tab.request.kind === 'http') {
-      btn.textContent = tr('btn.send', '发送')
+    if (tab.pendingRequestId || tab.request.kind === 'http') {
+      btn.textContent = tab.pendingRequestId ? tr('btn.cancel', '取消') : tr('btn.send', '发送')
       btn.classList.remove('stream-btn')
       btn.disabled = false
     } else {
@@ -798,6 +800,7 @@
     if (body.type === 'graphql') {
       body.graphql = {
         query: resolveEnvString(body.graphql.query || ''),
+        operationName: resolveEnvString(body.graphql.operationName || ''),
         variables: resolveEnvString(body.graphql.variables || '')
       }
     }
@@ -822,48 +825,55 @@
     }
   }
 
-  async function sendActive () {
+  async function sendActive (cancelPending = false) {
     const tab = activeTab()
     if (!tab) return
+    if (tab.pendingRequestId) {
+      if (cancelPending === true) await api.http.cancel(tab.pendingRequestId)
+      return
+    }
     if (tab.request.kind !== 'http') return toggleStream(tab)
     if (!String(tab.request.url || '').trim()) { toast(tr('msg.enterUrl', '请输入 URL')); $('#urlInput').focus(); return }
-
-    const btn = $('#btn-send')
-    btn.disabled = true
-    btn.textContent = tr('msg.sending', '发送中…')
+    const request = clone(tab.request)
+    const requestId = uid()
+    tab.pendingRequestId = requestId
+    updateSendButton()
     const started = Date.now()
     try {
-      const payload = buildPayload(tab.request)
+      const payload = { ...buildPayload(request), id: requestId }
       const res = await api.http.send(payload)
-      if (res && Array.isArray(res.setCookies) && res.setCookies.length) {
+      if (tab.pendingRequestId !== requestId) return
+      const updates = res.cookieUpdates || (res.setCookies || []).map((value) => ({ value, url: res.finalUrl || payload.url }))
+      if (updates.length) {
         const jar = cookieJar()
-        for (const value of res.setCookies) jar.store(value, payload.url)
+        for (const update of updates) jar.store(update.value, update.url)
         state.cookies = jar.cookies
         renderCookies()
       }
       tab.response = res
-      renderResponse()
-      if (!res.error) $('#respNote').textContent = ''
-      addHistory(tab.request, res, Date.now() - started)
+      if (activeTab() === tab) renderResponse()
+      addHistory(request, res, Date.now() - started, payload.url)
       if (res.error) toast(res.error)
     } catch (err) {
+      if (tab.pendingRequestId !== requestId) return
       tab.response = { error: err.message || String(err) }
-      renderResponse()
+      if (activeTab() === tab) renderResponse()
       toast(tab.response.error)
     } finally {
+      if (tab.pendingRequestId === requestId) tab.pendingRequestId = null
       updateSendButton()
       saveSoon()
     }
   }
 
-  function addHistory (req, res, durationMs) {
+  function addHistory (req, res, durationMs, sentUrl) {
     const entry = {
       id: uid(),
       at: Date.now(),
       kind: req.kind,
       method: req.method,
       name: req.name,
-      url: resolveEnvString(req.url),
+      url: sentUrl || resolveEnvString(req.url),
       status: res && res.status,
       error: res && res.error,
       durationMs: (res && res.timings && res.timings.total) || durationMs,
@@ -1835,7 +1845,7 @@
       if (e.key === 'Enter') { e.preventDefault(); sendActive() }
     })
 
-    $('#btn-send').addEventListener('click', sendActive)
+    $('#btn-send').addEventListener('click', () => sendActive(true))
     $('#btn-save').addEventListener('click', saveRequestModal)
     $('#btn-curl-import').addEventListener('click', importCurlModal)
     $('#btn-curl-export').addEventListener('click', exportCurl)
@@ -2019,6 +2029,7 @@
     // Rehydrate tabs from persistence (responses are not persisted).
     state.tabs = (state.tabs || []).map((t) => Object.assign(makeTab(t.request), t, {
       request: Object.assign(makeRequest(), t.request || {}),
+      pendingRequestId: null,
       response: null,
       stream: { connected: false, streamId: uid(), log: [], status: null, count: 0 }
     }))

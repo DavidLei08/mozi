@@ -187,24 +187,27 @@ jobs:
           overwrite_files: true
           files: dist/*
           body: |
-            Mozi v0.5.0：桌面与 Chrome 扩展工具箱，共 14 个工具。
+            Mozi v0.5.1：请求工具可靠性修复。
 
-            ## 新增
+            ## 修复与改进
 
-            - Chrome Manifest V3 扩展：点击图标打开独立工作台，数据保存在浏览器本地。
-            - 小游戏：内置「几猫国产3A大作」，支持离线运行、重新开始和返回工具箱。
-            - 自动构建 Chrome 扩展 ZIP，与 macOS、Windows 产物一同发布。
+            - 重定向跨源时移除认证头与手动 Cookie，逐跳收集 Cookie 并按目标 URL 重新匹配。
+            - 修复 multipart 文件上传分隔格式，支持多文件和空文件。
+            - 流式解压响应，同时限制压缩数据与解压后大小，保留截断提示。
+            - HTTP 请求支持取消，阻止快捷键重复发送，关闭请求标签时取消未完成请求。
+            - 历史记录保留发送时的请求配置与 URL，避免等待响应期间的编辑污染历史。
+            - 修正 Cookie 路径大小写、默认路径与过期时间优先级，拒绝来自无关域的 Cookie。
+            - 完善文件读取、GraphQL 变量、超时和取消错误处理，以及 HEAD / 204 / 304 空响应处理。
 
-            ## 修复
+            ## 验证
 
-            - Markdown 原生文件接口不可用时，改用普通文件选择器和浏览器下载；文件操作失败显示原因。
-            - HTML 导出等待最新 Markdown 与 Mermaid 渲染，避免导出旧内容。
-            - 笔记、待办和 Markdown 草稿保存与启动恢复；扩展 WebSocket 发送接口兼容。
+            - 196 项单元测试、199 项桌面冒烟检查通过。
+            - Chrome 扩展 HTTP 与取消专项集成测试通过；全量扩展冒烟测试在小游戏加载阶段受阻。
 
             ## 安装
 
-            - Chrome：下载 `Mozi-0.5.0-chrome.zip` 并解压，进入 `chrome://extensions`，开启开发者模式，加载包含 `manifest.json` 的文件夹。
+            - Chrome：下载 `Mozi-0.5.1-chrome.zip` 并解压，进入 `chrome://extensions`，开启开发者模式，加载包含 `manifest.json` 的文件夹。
             - macOS：根据芯片选择 arm64 或 x64 的 DMG / ZIP。
-            - Windows：安装包 `Mozi-Setup-0.5.0.exe`，便携版 `Mozi-0.5.0.exe`，或 `Mozi-0.5.0-win-x64.zip`。
+            - Windows：安装包 `Mozi-Setup-0.5.1.exe`，便携版 `Mozi-0.5.1.exe`，或 `Mozi-0.5.1-win-x64.zip`。
 
             未配置签名证书时，桌面产物未签名。扩展版受浏览器 Cookie、TLS 和文件访问规则限制，具体见 README。

@@ -8,7 +8,18 @@ const { WebSocketServer } = require('ws')
 const TINY_PNG = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg=='
 
 function startServers () {
+  let slowRequests = 0
   const jsonServer = http.createServer((req, res) => {
+    if (req.url.startsWith('/slow')) {
+      slowRequests++
+      const count = slowRequests
+      const timer = setTimeout(() => {
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ count }))
+      }, 400)
+      res.on('close', () => clearTimeout(timer))
+      return
+    }
     if (req.url.startsWith('/grant')) {
       res.writeHead(200, {
         'Content-Type': 'text/plain',
@@ -246,6 +257,36 @@ async function runSmoke (win, app) {
     check('http size', /B|KB/.test(httpResult.size), httpResult.size)
     check('json tree rendered', httpResult.tree === 1)
     check('json keys visible', httpResult.keys.includes('ok') && httpResult.keys.includes('items'), httpResult.keys.join(','))
+
+    const requestLifecycle = JSON.parse(await step(`(async () => {
+      const wait = ms => new Promise(resolve => setTimeout(resolve, ms))
+      const url = document.querySelector('#urlInput')
+      const setUrl = value => { url.value = value; url.dispatchEvent(new Event('input', { bubbles: true })) }
+      setUrl('${servers.base}/slow')
+      document.querySelector('#btn-send').click()
+      const cancelLabel = document.querySelector('#btn-send').textContent
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', ctrlKey: true, bubbles: true }))
+      setUrl('${servers.base}/edited-during-send')
+      await wait(1100)
+      const data = await window.api.store.load()
+      const historyUrl = data.history[0].request.url
+      const raw = document.querySelector('#respRaw').textContent
+      setUrl('${servers.base}/slow')
+      document.querySelector('#btn-send').click()
+      await wait(60)
+      document.querySelector('#btn-send').click()
+      await wait(150)
+      const cancelled = document.querySelector('#respNote').textContent
+      setUrl('${servers.base}/json')
+      document.querySelector('#btn-send').click()
+      await wait(150)
+      return JSON.stringify({ cancelLabel, historyUrl, raw, cancelled })
+    })()`))
+    check('HTTP pending button offers cancellation', /取消|Cancel/.test(requestLifecycle.cancelLabel), requestLifecycle.cancelLabel)
+    check('HTTP shortcut does not duplicate pending request', /"count":\s*1/.test(requestLifecycle.raw), requestLifecycle.raw)
+    check('HTTP history keeps send-time request', requestLifecycle.historyUrl === servers.base + '/slow', requestLifecycle.historyUrl)
+    check('HTTP cancel reaches the request engine', /cancelled/i.test(requestLifecycle.cancelled), requestLifecycle.cancelled)
+
 
     // Headers (including the Auth tab) must actually reach the server.
     const headerResult = JSON.parse(await step(`(async () => {
